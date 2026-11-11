@@ -319,6 +319,13 @@ body.tang .rib{color:var(--cream)}
 .stt{position:absolute;left:8px;bottom:8px;z-index:4}
 .stt .pill{box-shadow:0 2px 8px rgba(0,0,0,.25)}
 @media (max-width:520px){.mhead{gap:6px;flex-wrap:nowrap}.mteam{padding:8px 12px;gap:6px;min-width:0}.mteam b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mteam span{font-size:12px}.vs{font-size:14px}}
+.rtab tr.out td{opacity:.5}
+.rtab th:first-child,.rtab td.t{position:sticky;left:0;z-index:1;background:var(--surface)}
+.rtab tbody tr.link:hover td.t{background:var(--sunk)}
+.rtab th:nth-child(9),.rtab td:nth-child(9){border-left:1px solid var(--line)}
+.rtab{font-size:14px}.rtab th,.rtab td{padding:9px 7px}
+@media (max-width:520px){.rtab{font-size:13px}.rtab th,.rtab td{padding:8px 5px}.rtab th{font-size:10px;letter-spacing:.04em}.rtab td.t{max-width:118px;overflow:hidden;text-overflow:ellipsis}}
+.rtab td.t .pill{height:18px;font-size:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
 .cta{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:var(--ball);color:var(--ink);font-weight:800;font-size:14px;padding:11px 18px;border-radius:999px}
 body.tang .cta{color:var(--cream)}
 </style>
@@ -429,7 +436,6 @@ async function pageHome(){
     ${searchBox("q",false)}
     <span class="meta num">${p.p.length.toLocaleString("en-US")} players · ${seasons.size} seasons since 1946 · ${c.games.size} games this season</span>
     <div class="howto"><b>How does it work?</b><p>In every game, we check who <strong>scored the most points</strong>, who <strong>grabbed the most rebounds</strong> and who <strong>dished the most assists</strong>. He's the <strong>box score king</strong> of the night, and that's exactly what a Bodega pick needs. Here, we count how many times each player wore the crown. Classic averages and totals live in the <strong>Stats</strong> tab.</p><p class="ex"><strong>“8/9”</strong>: in his 9 games, he was box score king in points 8 times.<br><strong>+/-</strong>: how many points his team was up or down while he was on the floor. Best +/-: the player whose team outscored the opponent by the most with him on the floor.</p></div>
-    <a class="cta" href="#matchup">Prepare a pick: compare two teams →</a>
   </div>
   <section class="block fade"><div class="block-h"><h2>Safe bets</h2><p>For each Bodega category, the player who was box score king most often this season: the safest pick.</p></div><div class="rail">${tops}</div></section>
   <section class="block fade"><div class="block-h"><h2 class="kh"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>Box score kings, by category</h2><p>How many times each player was box score king: best of both teams in the category. Ties count, like in Bodega.</p></div><div class="boards">${boards}</div></section>
@@ -630,7 +636,7 @@ function etISO(d,t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)retur
 const parisT=t=>new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"});
 function dayShort(d){const t=new Date().toLocaleDateString("sv-SE",{timeZone:"America/New_York"});const x=new Date(d+"T12:00:00");const lb=x.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});return d===t?"Tonight · "+x.toLocaleDateString("en-US",{month:"short",day:"numeric"}):lb}
 function gTiles(d){const M=window._mup;if(!M)return"";return(M.days.get(d)||[]).map(g=>{const k=M.kOf(g);return`<a class="gt${k===M.key?" on":""}" href="#m-${k}"${k===M.key?' aria-current="true"':""}><span class="gt-t"><i class="dot" style="--c:${tcol(g.a)}"></i>${tab(g.a)}</span><span class="gt-at">@</span><span class="gt-t"><i class="dot" style="--c:${tcol(g.h)}"></i>${tab(g.h)}</span><small>${g.t?parisT(g.t):"TBD"}${M.bodegaOf(g)?' <b class="btag">Bodega</b>':""}</small></a>`}).join("")}
-async function pageMatchup(h){const c=await cur();const [nd,sc,bd]=await Promise.all([newsData(),dbDoc("schedule/season"),dbDoc("matchups/bodega")]);window._mnd=nd;
+async function pageMatchup(h){MT=0;const c=await cur();const [nd,sc,bd]=await Promise.all([newsData(),dbDoc("schedule/season"),dbDoc("matchups/bodega")]);window._mnd=nd;
   const now=Date.now();const BG=(bd?.games||[]).filter(g=>TEAMS[g.a]&&TEAMS[g.h]);
   const bodegaOf=g=>BG.find(b=>b.a===g.a&&b.h===g.h&&Math.abs(Date.parse(b.d)-Date.parse(g.d))<=1.5*864e5);
   const all=new Map();
@@ -683,11 +689,23 @@ function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"
   <div class="mper"><span class="perl">Count crowns over his…</span><div class="nchips" role="group" aria-label="Count crowns over">${PER.map(([k,l])=>`<button type="button" data-mp="${k}" aria-pressed="${k===MP}">${l}</button>`).join("")}</div>
   </div><p class="small" style="color:var(--ink);margin:8px 0 0">On each card, <b>5/11</b> means: out of his 11 games in that period, he had the most in that category 5 times (both teams included).</p>
   <div class="kgrid fade">${CATS.map(kcat).join("")}</div>
+  ${rosterBlock(A,H,stOf)}
   <section class="block fade"><div class="block-h"><h2>Injuries</h2></div>${injNote?`<p class="mute small">${injNote}</p>`:`<div class="ngames">${listed.filter(x=>x[1].length).map(([t,rs])=>`<div class="ngame"><div class="ng-h"><b>${esc(t)}</b></div>${rs.map(r=>prow(t,r[4],r[5],r[6])).join("")}</div>`).join("")}</div>`}</section>
   ${h2h.length?`<section class="block fade"><div class="block-h"><h2>When they met</h2></div><div class="tbl-wrap"><table><thead><tr><th>Game</th>${CATS.map(([k])=>`<th style="text-align:left">${SHORT[k]}</th>`).join("")}</tr></thead><tbody>${h2h.map(g=>`<tr><td>${dateFr(g.d)} · ${tab(g.a)} ${g.as}-${g.hs} ${tab(g.h)}</td>${CATS.map(([k])=>`<td style="text-align:left">${kings(g,k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`:""}`}
+let MT=0;
+const pct=(rs,m,a)=>{const A=rs.reduce((s,r)=>s+(r[a]||0),0);return A?100*rs.reduce((s,r)=>s+(r[m]||0),0)/A:null};
+function rosterBlock(A,H,stOf){const c=CUR;const t=[A,H][MT];const n=1e9;const dOf=r=>c.games.get(r.g)?.d||"";
+  const rows=[...c.ps.values()].filter(o=>o.tm===t).map(o=>{const rs=[...o.rows].sort((a,b)=>dOf(a).localeCompare(dOf(b))).slice(-n);return{id:o.id,rs,gp:rs.length,min:avg(rs,"min"),pts:avg(rs,"pts"),reb:avg(rs,"reb"),ast:avg(rs,"ast"),tov:avg(rs,"tov"),pm:avg(rs,"pm"),stl:avg(rs,"stl"),blk:avg(rs,"blk"),tpm:avg(rs,"tpm"),fga:avg(rs,"fga"),tpa:avg(rs,"tpa"),fta:avg(rs,"fta"),fg:pct(rs,"fgm","fga"),tp:pct(rs,"tpm","tpa"),ft:pct(rs,"ftm","fta"),st:stOf(o.id)}}).filter(x=>x.gp&&x.min>=8).sort((a,b)=>b.min*b.gp-a.min*a.gp);
+  const MINA={fg:["fga",5],tp:["tpa",2],ft:["fta",2]};const gpMax=Math.max(...rows.map(x=>x.gp));const ok=(x,k)=>x.min>=12&&x.gp>=gpMax/2&&x[k]!=null&&(!MINA[k]||x[MINA[k][0]]>=MINA[k][1]);
+  const mx={};["pts","reb","ast","tov","pm","stl","blk","tpm","fg","tp","ft"].forEach(k=>mx[k]=Math.max(...rows.filter(x=>ok(x,k)).map(x=>x[k])));
+  const td=(x,k,f)=>`<td class="${ok(x,k)&&x[k]===mx[k]?"lead":""}">${x[k]==null?"–":f(x[k])}</td>`;const pc=v=>f1(v)+"%";
+  const per=`Whole ${seasonLbl(c.meta.season)} season, per game`;
+  return`<section class="block fade" id="mroster"><div class="block-h"><h2>Season stats</h2><p>${per}. <b>Orange</b> = best of the team. Swipe the table → for steals, blocks and shooting.</p></div>
+  <div class="nchips" role="group" aria-label="Team">${[A,H].map((x,i)=>`<button type="button" data-mt="${i}" aria-pressed="${i===MT}"><span class="dot" style="--c:${tcol(x)};display:inline-block;margin-right:6px;vertical-align:-1px"></span>${esc(x)}</button>`).join("")}</div>
+  <div class="tbl-wrap"><table class="rtab"><thead><tr><th>Player</th><th>GP</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>TOV</th><th>+/-</th><th>Stl</th><th>Blk</th><th>3PM</th><th>FG%</th><th>3P%</th><th>FT%</th></tr></thead><tbody>${rows.map(x=>`<tr class="link${x.st==="Out"?" out":""}" data-href="#p-${x.id}"><td class="t">${esc((n=>{const w=n.split(" ");return w.length>1?w[0][0]+". "+w.slice(1).join(" "):n})(nameOf(x.id)))}${x.st?" "+pillOf(x.st):""}</td><td class="mute">${x.gp}</td><td>${f1(x.min)}</td>${td(x,"pts",f1)}${td(x,"reb",f1)}${td(x,"ast",f1)}${td(x,"tov",f1)}${td(x,"pm",sg)}${td(x,"stl",f1)}${td(x,"blk",f1)}${td(x,"tpm",f1)}${td(x,"fg",pc)}${td(x,"tp",pc)}${td(x,"ft",pc)}</tr>`).join("")}</tbody></table></div></section>`}
 function wireMatchup(){document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-day]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));$("#gstrip").innerHTML=gTiles(b.dataset.day);$("#gstrip").scrollLeft=0});
   const on=document.querySelector(".gt.on");if(on)on.scrollIntoView({block:"nearest",inline:"center"});
-  const mb=$("#mbody");if(mb)mb.addEventListener("click",e=>{const b=e.target.closest("[data-mp]");if(!b||!window._mp)return;MP=b.dataset.mp;mb.innerHTML=matchBody(window._mp,window._mnd)})}
+  const mb=$("#mbody");if(mb)mb.addEventListener("click",e=>{const tr=e.target.closest("tr[data-href]");if(tr){location.hash=tr.dataset.href.slice(1);return}const bt=e.target.closest("[data-mt]");if(bt&&window._mp){MT=+bt.dataset.mt;const sec=$("#mroster");if(sec){const st=id=>{const v=injMap(window._mnd).get(id);return v&&v!=="Available"?v:null};sec.outerHTML=rosterBlock(window._mp[0],window._mp[1],st)}return}const b=e.target.closest("[data-mp]");if(!b||!window._mp)return;MP=b.dataset.mp;mb.innerHTML=matchBody(window._mp,window._mnd)})}
 function notFound(){return`<div class="empty fade"><h1 class="disp" style="font-size:48px">Not found</h1><p>This player or team isn't in the database. <a href="#" style="text-decoration:underline">Back to the season</a></p></div>`}
 
 function crumbs(h){
