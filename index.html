@@ -137,7 +137,7 @@ body.tang .sticker{color:var(--cream)}
 @media (max-width:640px){.player-hero{grid-template-columns:1fr}.player-hero .pcard{max-width:240px}}
 
 /* collectible card */
-.pcard{--c:#12263F;position:relative;display:block;aspect-ratio:5/7;border-radius:18px;overflow:hidden;background:var(--c);color:#fff;isolation:isolate;transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s cubic-bezier(.16,1,.3,1);box-shadow:0 14px 30px -14px rgba(18,38,63,.55),inset 0 0 0 1.5px rgba(255,255,255,.25)}
+.pcard{--c:#12263F;position:relative;display:block;aspect-ratio:5/7;border-radius:18px;overflow:hidden;background:var(--c);color:#fff;isolation:isolate;transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s cubic-bezier(.16,1,.3,1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);clip-path:inset(0 round 18px);-webkit-mask-image:-webkit-radial-gradient(white,black)}
 .pcard::before{content:"";position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 10px,transparent 10px 20px),radial-gradient(120% 80% at 0% 100%,rgba(0,0,0,.35),transparent 60%)}
 .pcard::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;mix-blend-mode:soft-light;opacity:.5;background:conic-gradient(from calc(var(--a,0) * 1deg) at var(--mx,30%) var(--my,20%),#ff8a5b,#ffe36e,#7cf5c6,#76b8ff,#c58cff,#ff8a5b);filter:blur(18px) saturate(1.4);transition:opacity .3s}
 .pcard .no{position:absolute;right:-6%;top:-4%;font-family:var(--f-display);font-weight:900;font-variation-settings:"wdth" 100;font-size:min(46vw,190px);line-height:1;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.35);z-index:0}
@@ -254,6 +254,13 @@ body.tang .skins button[aria-pressed="true"]{background:var(--ink);color:var(--c
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tabs button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--soft)}
 .tabs button[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.crumbs{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;min-width:0}
+.crumbs a{opacity:.72;flex:none;padding:4px 0}
+.crumbs a:hover{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.crumbs .sep{opacity:.45;flex:none}
+.crumbs [aria-current]{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.crumbs .bk{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--surface);color:var(--fg);opacity:1;margin-right:4px;padding:0}
+.crumbs .bk svg{width:14px;height:14px}
 .loading{display:flex;align-items:center;gap:10px;color:var(--soft);padding:60px 0}
 .loading i{width:14px;height:14px;border-radius:50%;background:var(--ball);animation:b 0.9s cubic-bezier(.3,0,.7,1) infinite alternate}
 @keyframes b{from{transform:translateY(0)}to{transform:translateY(-14px)}}
@@ -454,7 +461,7 @@ function careerChart(S,idx){idx=idx??CCI;const meta=CC.find(c=>c[0]===idx);const
     if(ks.length<=14||i%Math.ceil(ks.length/10)===0)s+=`<text x="${(x+bw*.32).toFixed(1)}" y="${H-6}" text-anchor="middle">${String(k).slice(2)}-${String((k+1)%100).padStart(2,"0")}</text>`});
   const fmt=v=>idx===10?sg(v):f1(v)+(meta[2]==="%"?"%":"");
   return`<div id="cchart">${chips}<div class="chart"><div class="cap"><span>${meta[1]} ${meta[3]}</span><span>Peak: <b>${fmt(vals[bi])}</b> in ${seasonLbl(ks[bi])}</span></div>${s}</svg></div></div>`}
-function wireCareer(){const box=$("#cchart");if(!box||!window._S)return;box.querySelectorAll("[data-cc]").forEach(b=>b.onclick=()=>{CCI=+b.dataset.cc;box.outerHTML=careerChart(window._S,CCI);wireCareer()})}
+function wireCareer(){const box=$("#cchart");if(!box||!window._S)return;box.querySelectorAll("[data-cc]").forEach(b=>b.onclick=()=>{const sx=box.querySelector(".nchips.cc")?.scrollLeft||0;CCI=+b.dataset.cc;box.outerHTML=careerChart(window._S,CCI);const nb=$("#cchart .nchips.cc");if(nb)nb.scrollLeft=sx;wireCareer()})}
 
 /* ---------- news (official report, stored in the database) ---------- */
 const ST={Out:["Out","o"],Doubtful:["Doubtful","d"],Questionable:["Questionable","q"],Probable:["Probable","p"],Available:["Available","a"]};
@@ -554,6 +561,18 @@ function teamNewsBlock(n,nd){if(!nd)return"";const cur=nd.cur,feed=nd.feed;
 async function newsData(){try{const [c,f]=await Promise.all(["current","feed"].map(x=>fetch("data/news/"+x+".json?t="+Date.now()).then(r=>r.ok?r.json():null)));return{cur:c,feed:f}}catch(e){return null}}
 function notFound(){return`<div class="empty fade"><h1 class="disp" style="font-size:48px">Not found</h1><p>This player or team isn't in the database. <a href="#" style="text-decoration:underline">Back to the season</a></p></div>`}
 
+function crumbs(h){
+  const tr=[["Season","#"]];
+  if(h==="equipes")tr.push(["Teams"]);
+  else if(h==="stats")tr.push(["Stats"]);
+  else if(h==="news")tr.push(["News"]);
+  else if(h.startsWith("t-")){const n=Object.keys(TEAMS).find(x=>slug(x)===h.slice(2));tr.push(["Teams","#equipes"],[n||"Team"])}
+  else if(h.startsWith("p-")){const id=+h.slice(2);const P=CUR?.byId.get(id);const tm=CUR?.ps.get(id)?.tm||(P&&P.t>=CUR.meta.season?P.tm:null);
+    if(tm&&TEAMS[tm])tr.push(["Teams","#equipes"],[tm,"#t-"+slug(tm)]);else tr.push(["Stats","#stats"]);tr.push([P?P.n:"Player"])}
+  else return"";
+  const up=tr[tr.length-2][1];
+  return`<nav class="crumbs" aria-label="Breadcrumb"><a class="bk" href="${up}" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>${tr.map((x,i)=>i===tr.length-1?`<span aria-current="page">${esc(x[0])}</span>`:`<a href="${x[1]}">${esc(x[0])}</a><span class="sep" aria-hidden="true">/</span>`).join("")}</nav>`}
+
 /* ---------- router ---------- */
 async function route(){
   const h=decodeURIComponent(location.hash.slice(1));const app=$("#app");
@@ -571,7 +590,7 @@ async function route(){
     else if(h==="news")html=await pageNews();
     else if(h==="stats")html=await pageRanks();
     else html=await pageHome();
-    if(h)html=`<div style="margin-top:14px">${searchBox("q",false)}</div>`+html;
+    if(h)html=crumbs(h)+`<div style="margin-top:10px">${searchBox("q",false)}</div>`+html;
     const c=CUR;
     app.innerHTML=html+`<p class="foot">Sources: Kaggle dataset “Historical NBA Data and Player Box Scores” (1946-2026), Basketball-Reference box scores for the current season, and the NBA's official injury report and player transactions. Regular season unless noted. Data through ${c?dateFr(c.meta.through)+", "+c.meta.through.slice(0,4):"–"}. “Box score king” = best of both teams in the category, ties included.</p><div class="skins" role="group" aria-label="Colors"><button type="button" data-skin="bleu">Blue</button><button type="button" data-skin="orange">Orange</button></div>`;
     let sk="bleu";try{sk=localStorage.getItem("bs_skin")||"bleu"}catch(e){}setSkin(sk);
