@@ -19,6 +19,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/season.py data
+      - name: NBA schedule (Matchup tab)
+        run: python scripts/schedule.py data/schedule.json data/schedule.json || echo "schedule skipped"
       - name: Save
         run: |
           git config user.name "bodega-bot"
