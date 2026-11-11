@@ -406,7 +406,7 @@ async function pageTeam(sl){
 function teamChart(h,n){const W=1000,H=220,pl=34,pb=26,pt=10;const bw=(W-pl)/h.length;
   const y=v=>pt+(1-v)*(H-pt-pb);let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Win percentage by season">`;
   [0,.25,.5,.75,1].forEach(v=>{s+=`<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v===.5?'stroke-dasharray="4 4"':""}/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${Math.round(v*100)}</text>`});
-  h.forEach((r,i)=>{const p=r[1]/(r[1]+r[2]||1);const x=pl+i*bw+bw*.15;s+=`<rect x="${x.toFixed(1)}" y="${y(p).toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${(H-pb-y(p)).toFixed(1)}" rx="${Math.min(3,bw*.3).toFixed(1)}" fill="${i===h.length-1?"var(--ball)":tcol(n)}" opacity="${i===h.length-1?1:.85}"><title>${seasonLbl(r[0])} · ${r[3]} ${r[4]} · ${r[1]}-${r[2]}</title></rect>`;
+  h.forEach((r,i)=>{const p=r[1]/(r[1]+r[2]||1);const x=pl+i*bw+bw*.15;s+=`<rect x="${x.toFixed(1)}" y="${y(p).toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${(H-pb-y(p)).toFixed(1)}" rx="${Math.min(3,bw*.3).toFixed(1)}" fill="${i===h.length-1?"var(--ball)":"var(--fg)"}" opacity="${i===h.length-1?1:.82}"><title>${seasonLbl(r[0])} · ${r[3]} ${r[4]} · ${r[1]}-${r[2]}</title></rect>`;
     if(r[0]%10===0)s+=`<text x="${(x+bw*.35).toFixed(1)}" y="${H-8}" text-anchor="middle">${r[0]}</text>`});
   const best=h.reduce((a,b)=>b[1]/(b[1]+b[2])>a[1]/(a[1]+a[2])?b:a);
   return`<div class="chart"><div class="cap"><span>Best season: <b>${seasonLbl(best[0])}, ${best[1]}-${best[2]}</b> (${esc(best[3])} ${esc(best[4])})</span><span>Orange bar: current season</span></div>${s}</svg></div>`}
@@ -448,7 +448,7 @@ function careerChart(S,idx){idx=idx??CCI;const meta=CC.find(c=>c[0]===idx);const
   for(let v=mn;v<=mx+1e-9;v+=step)s+=`<line x1="${pl}" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)"${Math.abs(v)<1e-9&&mn<0?' stroke-width="2"':""}/><text x="${pl-6}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${Math.round(v*10)/10}</text>`;
   const bi=vals.indexOf(Math.max(...vals));
   ks.forEach((k,i)=>{const x=pl+i*bw+bw*.18;const top=Math.min(y(vals[i]),y(0>mn?0:mn)),h=Math.abs(y(vals[i])-y(Math.max(mn,0)));
-    s+=`<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(bw*.64).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" rx="${Math.min(4,bw*.25).toFixed(1)}" fill="${i===bi?"var(--ball)":"var(--team)"}" opacity="${i===bi?1:.8}"><title>${seasonLbl(k)} · ${idx===10?sg(vals[i]):f1(vals[i])}${meta[2]==="%"?"%":" "+meta[2]}</title></rect>`;
+    s+=`<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(bw*.64).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" rx="${Math.min(4,bw*.25).toFixed(1)}" fill="${i===bi?"var(--ball)":"var(--fg)"}" opacity="${i===bi?1:.82}"><title>${seasonLbl(k)} · ${idx===10?sg(vals[i]):f1(vals[i])}${meta[2]==="%"?"%":" "+meta[2]}</title></rect>`;
     if(ks.length<=14||i%Math.ceil(ks.length/10)===0)s+=`<text x="${(x+bw*.32).toFixed(1)}" y="${H-6}" text-anchor="middle">${String(k).slice(2)}-${String((k+1)%100).padStart(2,"0")}</text>`});
   const fmt=v=>idx===10?sg(v):f1(v)+(meta[2]==="%"?"%":"");
   return`<div id="cchart">${chips}<div class="chart"><div class="cap"><span>${meta[1]} ${meta[3]}</span><span>Peak: <b>${fmt(vals[bi])}</b> in ${seasonLbl(ks[bi])}</span></div>${s}</svg></div></div>`}
