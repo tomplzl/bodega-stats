@@ -392,6 +392,7 @@ async function pageTeam(sl){
   const leadIn=(k,filter)=>{const m=new Map();let tot=0;r.games.filter(filter).forEach(x=>{tot++;(c.byGame.get(x.g.id)||[]).forEach(row=>{if(row.L[k]&&row.tm===n)m.set(row.p,(m.get(row.p)||0)+1)})});return{tot,list:[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3)}};
   const leadBlock=(k,l,filter,ctx)=>{const L=leadIn(k,filter);return`<div class="board"><h3><span>${l}</span><small>${ctx}</small></h3>${L.list.length?L.list.map(([id,v],i)=>`<a class="lrow" href="#p-${id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${tcol(n)}"></span><span class="nm">${esc(nameOf(id))}</span><span class="v">${v}<small> / ${L.tot}</small></span></a>`).join(""):`<p class="mute" style="margin:8px 0 12px;font-size:13px">No box score kings on this team yet.</p>`}</div>`};
   const hist=(await load("teams"))[c.teams[n]?.id]||[];
+  const nd=await newsData();
   return`<section class="hero fade"><div><span class="eyebrow"><i></i>${esc(c.teams[n]?.city||"")} · ${TEAMS[n][2]==="E"?"Eastern Conference":"Western Conference"}</span><h1 class="disp">${esc(n)}</h1>
       <div class="sub"><span><b>${ord(rank)}</b> in the ${TEAMS[n][2]==="E"?"East":"West"}</span><span>Avg. margin <b>${sg(diff)}</b></span><span>Scored <b>${f1(r.pf/gp)}</b> · allowed <b>${f1(r.pa/gp)}</b></span></div></div>
     <div class="sticker"><span class="big">${r.w}-${r.l}</span><small>${seasonLbl(c.meta.season)} record</small></div></section>
@@ -402,6 +403,7 @@ async function pageTeam(sl){
     <div class="tbl-wrap"><table><thead><tr><th>Player</th><th>GP</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>TOV</th><th>+/-</th></tr></thead><tbody>${roster.map(x=>`<tr class="link" data-href="#p-${x.o.id}"><td class="t">${esc(nameOf(x.o.id))}</td><td class="mute">${x.rs.length}</td><td>${f1(avg(x.rs,"min"))}</td><td>${f1(avg(x.rs,"pts"))}</td><td>${f1(avg(x.rs,"reb"))}</td><td>${f1(avg(x.rs,"ast"))}</td><td>${f1(avg(x.rs,"tov"))}</td><td class="${avg(x.rs,"pm")>0?"w":avg(x.rs,"pm")<0?"l":""}">${sg(avg(x.rs,"pm"))}</td></tr>`).join("")}</tbody></table></div></section>
   <section class="block fade"><div class="block-h"><h2 class="kh"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>Their box score kings</h2><p>How many times each player on this team was box score king (best of both teams). Best +/- counted in wins, worst +/- in losses.</p></div>
     <div class="boards">${leadBlock("pts","Points",()=>1,"games")}${leadBlock("reb","Rebounds",()=>1,"games")}${leadBlock("ast","Assists",()=>1,"games")}${leadBlock("tov","Turnovers",()=>1,"games")}${leadBlock("plus","Best +/-",x=>x.w,"wins")}${leadBlock("minus","Worst +/-",x=>!x.w,"losses")}</div></section>
+  ${teamNewsBlock(n,nd)}
   ${hist.length?`<section class="block fade"><div class="block-h"><h2>History</h2><p>Regular-season win percentage since ${hist[0][0]}.</p></div>${teamChart(hist,n)}</section>`:""}`}
 function teamChart(h,n){const W=1000,H=220,pl=34,pb=26,pt=10;const bw=(W-pl)/h.length;
   const y=v=>pt+(1-v)*(H-pt-pb);let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Win percentage by season">`;
@@ -535,6 +537,21 @@ function drawRanks(){const b=$("#rkb");if(!b)return;const c=CUR;const sel=$("#rk
       ${list.length>10?`<button type="button" class="more" data-more="${k}">${open?"Show less":`Show top ${Math.min(50,list.length)}`}</button>`:""}</div>`}).join("");
   b.innerHTML=boards;b.querySelectorAll("[data-more]").forEach(x=>x.onclick=()=>{const k=x.dataset.more;RKOPEN.has(k)?RKOPEN.delete(k):RKOPEN.add(k);drawRanks()})}
 async function wireRanks(){D.__seasons=await load("seasons");document.querySelectorAll("[data-rk]").forEach(x=>x.onclick=()=>{RK.mode=x.dataset.rk;drawRanks()});$("#rkSeason").onchange=e=>{RK.season=e.target.value;RKOPEN.clear();drawRanks()};drawRanks()}
+function teamOfItem(x){return x.kind==="inj"||!x.kind?teamOfReport(x.team):(Object.keys(TEAMS).find(n=>norm(x.team||"").includes(norm(n)))||x.team)}
+function feedItemHTML(x){const KT={inj:["Injury","ki"],tx:["Transaction","kt"],rot:["Rotation","kr"]};const k=x.kind||"inj";const tm=teamOfItem(x);
+  const when=(()=>{const d=x.date&&/^\d{8}$/.test(x.date)?`${x.date.slice(0,4)}-${x.date.slice(4,6)}-${x.date.slice(6)}`:null;return d?dateFr(d):k==="tx"?dateFr(x.at.slice(0,10)):dateFr(x.at.slice(0,10))})();
+  const body=k==="inj"?`<b>${(()=>{const nm=playerOfReport(x.player),id=pid(nm);return id?`<a href="#p-${id}">${esc(nm)}</a>`:esc(nm)})()}</b> · ${x.from?`${esc((ST[x.from]||[x.from])[0])} → `:""}${pillOf(x.to)}${x.reason?` <span class="mute">${esc(x.reason)}</span>`:""}`
+    :k==="tx"?`<b>${esc(x.type||"")}</b> · ${esc(x.text)}`:esc(x.text);
+  return`<div class="fitem"><span class="dot" style="--c:${tcol(tm)}"></span><span><span class="ktag ${KT[k][1]}">${KT[k][0]}</span>${body}</span><time>${when}</time></div>`}
+function teamNewsBlock(n,nd){if(!nd)return"";const cur=nd.cur,feed=nd.feed;
+  const inj=(cur?.rows||[]).filter(r=>teamOfReport(r[0])===n);
+  const seen=new Set();const injU=inj.filter(r=>{const k=r[4];if(seen.has(k))return false;seen.add(k);return true});
+  const items=(feed?.items||[]).filter(x=>teamOfItem(x)===n).sort((a,b)=>((b.date&&/^\d{8}$/.test(b.date)?b.date:b.at.slice(0,10).replace(/-/g,""))+b.at).localeCompare((a.date&&/^\d{8}$/.test(a.date)?a.date:a.at.slice(0,10).replace(/-/g,""))+a.at)).slice(0,12);
+  const when=cur?.report?new Date(cur.report).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"})+" (Paris)":"";
+  return`<section class="block fade"><div class="block-h"><h2>Injuries &amp; news</h2><p>${when?`Official injury report of ${esc(when)}.`:""}</p></div>
+   <div class="ngames" style="grid-template-columns:1fr"><div class="ngame"><div class="ng-h"><b>Injury report</b><span>${injU.length?injU.length+" listed":""}</span></div>${injU.length?injU.map(r=>prow(n,r[4],r[5],r[6])).join(""):`<p class="mute small">Nobody listed on the latest report${cur&&(cur.notSubmitted||[]).some(x=>teamOfReport(x.team)===n)?" (team has not submitted yet)":""}.</p>`}</div></div>
+   ${items.length?`<div class="feed">${items.map(feedItemHTML).join("")}</div>`:`<p class="mute small">No recent transactions or rotation changes.</p>`}</section>`}
+async function newsData(){try{const [c,f]=await Promise.all(["current","feed"].map(x=>fetch("data/news/"+x+".json?t="+Date.now()).then(r=>r.ok?r.json():null)));return{cur:c,feed:f}}catch(e){return null}}
 function notFound(){return`<div class="empty fade"><h1 class="disp" style="font-size:48px">Not found</h1><p>This player or team isn't in the database. <a href="#" style="text-decoration:underline">Back to the season</a></p></div>`}
 
 /* ---------- router ---------- */
