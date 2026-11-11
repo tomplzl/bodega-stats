@@ -1,0 +1,44 @@
+name: Sync from Drive
+on:
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: data-update
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch latest files from Drive
+        run: |
+          python3 - <<'PY'
+          import re, os, urllib.request
+          FOLDER = "1H6f9wHf9D0dsim1HPnlav7fGMQFIfOrP"
+          TARGETS = {"index": ("index.html", b"<title>Bodega Stats</title>", 30000), "news": ("scripts/news.py", b"def main", 3000), "season": ("scripts/season.py", b"def main", 3000)}
+          get = lambda u: urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=30).read()
+          html = get(f"https://drive.google.com/embeddedfolderview?id={FOLDER}").decode("utf-8", "replace")
+          latest = {}
+          for fid, title in re.findall(r'file/d/([A-Za-z0-9_-]+)/view.*?flip-entry-title">([^<]+)<', html, re.S):
+              m = re.match(r"(index|news|season)-(\d{12})\.(html|py)$", title.strip())
+              if m and (m.group(1) not in latest or m.group(2) > latest[m.group(1)][0]):
+                  latest[m.group(1)] = (m.group(2), fid)
+          for k, (ts, fid) in latest.items():
+              path, marker, minsize = TARGETS[k]
+              data = get(f"https://drive.usercontent.google.com/download?id={fid}&export=download&confirm=t")
+              if marker not in data or len(data) < minsize:
+                  print(k, "ignored"); continue
+              old = open(path, "rb").read() if os.path.exists(path) else b""
+              if old != data:
+                  open(path, "wb").write(data); print(k, "updated", ts)
+          PY
+      - name: Save
+        run: |
+          git config user.name "bodega-bot"
+          git config user.email "bodega-bot@users.noreply.github.com"
+          git add index.html scripts
+          git diff --cached --quiet || (git commit -m "Sync from Drive" && git pull --rebase && git push)
