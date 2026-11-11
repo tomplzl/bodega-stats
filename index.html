@@ -267,6 +267,60 @@ body.tang .skins button[aria-pressed="true"]{background:var(--ink);color:var(--c
 .fade{animation:fd .45s cubic-bezier(.16,1,.3,1) both}
 @keyframes fd{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.fade,.loading i{animation:none}}
+
+/* matchup */
+.mtop{padding-top:22px;display:flex;flex-direction:column;gap:12px}
+.mtop h1{font-size:clamp(36px,7vw,64px);margin:0;color:var(--fg)}
+.mtop h1 span{color:var(--ball)}
+.mctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btag{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:6px;background:var(--ball);color:var(--ink);vertical-align:1px}
+.pickh{margin:4px 0 0;font-family:var(--f-display);font-weight:800;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}.days::-webkit-scrollbar{display:none}
+.days button{flex:none;border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:700;color:var(--ink)}
+.days button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.gstrip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 16px 6px 2px;margin-right:-16px;scroll-snap-type:x proximity}.gstrip::-webkit-scrollbar{display:none}
+.gt{flex:none;scroll-snap-align:start;display:grid;grid-template-columns:auto auto auto;align-items:center;gap:4px 8px;background:var(--surface);border:2px solid transparent;border-radius:16px;padding:11px 14px;min-width:132px}
+.gt-t{display:flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:900;font-variation-settings:"wdth" 110;font-size:16px}
+.gt-at{font-size:12px;color:var(--faint);font-weight:700}
+.gt small{grid-column:1/-1;font-size:12px;color:var(--faint);font-weight:600;display:flex;gap:6px;align-items:center}
+.gt:hover{border-color:var(--line)}
+.gt.on{background:var(--cream);color:var(--ink);border-color:var(--cream)}
+.gt.on small,.gt.on .gt-at{color:var(--ink);opacity:.7}
+body.tang .gt.on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+body.tang .gt.on small,body.tang .gt.on .gt-at{color:var(--cream)}
+.linkbtn{border:0;background:none;font-size:13px;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:3px;padding:6px 4px}
+.swap{border:1px solid var(--line);background:var(--surface);border-radius:999px;width:40px;height:40px;font-size:16px;font-weight:700;color:var(--fg)}
+.mhead{display:flex;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+.mteam{display:flex;align-items:baseline;gap:10px;background:var(--surface);border-radius:999px;padding:10px 18px;box-shadow:inset 6px 0 0 var(--c)}
+.mteam b{font-family:var(--f-display);font-weight:900;font-variation-settings:"wdth" 118;text-transform:uppercase;font-size:20px}
+.mteam span{font-size:14px;font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
+.mteam:hover b{color:var(--ball)}
+.vs{font-family:var(--f-display);font-weight:900;font-size:18px;color:var(--ink)}
+.mper{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:14px}
+.mper .nchips{margin:0}
+.perl{font-family:var(--f-display);font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.mper p{color:var(--ink)}
+.kgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px 22px;margin-top:22px}
+@media (max-width:1000px){.kgrid{grid-template-columns:1fr}}
+.kcat{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kcat h2{margin:0;font-family:var(--f-display);font-size:20px;font-weight:800;font-variation-settings:"wdth" 112;text-transform:uppercase}
+.kcat>p{margin:0;font-size:14px;color:var(--ink);font-weight:500;min-height:2.8em}
+.kcat>p b{font-weight:800}
+.pod{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:520px}
+@media (max-width:560px){.pod{grid-template-columns:repeat(3,148px);overflow-x:auto;scrollbar-width:none;padding-bottom:4px;max-width:none;margin-right:-16px;padding-right:16px}.pod::-webkit-scrollbar{display:none}}
+.pslot{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pslot .pcard{width:100%}
+.pslot:not(:first-child) .pcard{transform:scale(.94);transform-origin:top center}
+.rib{align-self:flex-start;font-family:var(--f-display);font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--ball);color:var(--ink);padding:3px 9px;border-radius:999px}
+body.tang .rib{color:var(--cream)}
+.rib.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.pslot .pcard .nm b,.pslot .pcard .nm b.lg{font-size:clamp(12px,1.4vw,15px);font-variation-settings:"wdth" 88;overflow-wrap:normal;word-break:normal;hyphens:none}
+.pslot.out .pcard{filter:grayscale(1);opacity:.55}
+.stt{position:absolute;left:8px;bottom:8px;z-index:4}
+.stt .pill{box-shadow:0 2px 8px rgba(0,0,0,.25)}
+@media (max-width:520px){.mhead{gap:6px;flex-wrap:nowrap}.mteam{padding:8px 12px;gap:6px;min-width:0}.mteam b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mteam span{font-size:12px}.vs{font-size:14px}}
+.cta{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:var(--ball);color:var(--ink);font-weight:800;font-size:14px;padding:11px 18px;border-radius:999px}
+body.tang .cta{color:var(--cream)}
 </style>
 
 <header class="bar">
@@ -275,6 +329,7 @@ body.tang .skins button[aria-pressed="true"]{background:var(--ink);color:var(--c
     <nav class="nav" aria-label="Sections">
       <a href="#" data-nav="home">Season</a>
       <a href="#equipes" data-nav="equipes">Teams</a>
+      <a href="#matchup" data-nav="matchup">Matchup</a>
       <a href="#stats" data-nav="stats">Stats</a>
       <a href="#news" data-nav="news">News</a>
     </nav>
@@ -324,7 +379,7 @@ async function cur(){
   for(const [,rs] of byGame){
     const mx={pts:-1e9,reb:-1e9,ast:-1e9,tov:-1e9,plus:-1e9,minus:-1e9};
     rs.forEach(r=>{mx.pts=Math.max(mx.pts,r.pts);mx.reb=Math.max(mx.reb,r.reb);mx.ast=Math.max(mx.ast,r.ast);mx.tov=Math.max(mx.tov,r.tov);mx.plus=Math.max(mx.plus,r.pm);mx.minus=Math.max(mx.minus,-r.pm)});
-    rs.forEach(r=>{r.L={pts:r.pts===mx.pts,reb:r.reb===mx.reb,ast:r.ast===mx.ast,tov:r.tov===mx.tov,plus:r.pm===mx.plus,minus:-r.pm===mx.minus}})}
+    rs.forEach(r=>{r.M=mx;r.L={pts:r.pts===mx.pts,reb:r.reb===mx.reb,ast:r.ast===mx.ast,tov:r.tov===mx.tov,plus:r.pm===mx.plus,minus:-r.pm===mx.minus}})}
   // team records
   const rec={};for(const n in TEAMS)rec[n]={w:0,l:0,pf:0,pa:0,games:[]};
   [...games.values()].sort((a,b)=>a.d.localeCompare(b.d)).forEach(g=>{
@@ -374,6 +429,7 @@ async function pageHome(){
     ${searchBox("q",false)}
     <span class="meta num">${p.p.length.toLocaleString("en-US")} players · ${seasons.size} seasons since 1946 · ${c.games.size} games this season</span>
     <div class="howto"><b>How does it work?</b><p>In every game, we check who <strong>scored the most points</strong>, who <strong>grabbed the most rebounds</strong> and who <strong>dished the most assists</strong>. He's the <strong>box score king</strong> of the night, and that's exactly what a Bodega pick needs. Here, we count how many times each player wore the crown. Classic averages and totals live in the <strong>Stats</strong> tab.</p><p class="ex"><strong>“8/9”</strong>: in his 9 games, he was box score king in points 8 times.<br><strong>+/-</strong>: how many points his team was up or down while he was on the floor. Best +/-: the player whose team outscored the opponent by the most with him on the floor.</p></div>
+    <a class="cta" href="#matchup">Prepare a pick: compare two teams →</a>
   </div>
   <section class="block fade"><div class="block-h"><h2>Safe bets</h2><p>For each Bodega category, the player who was box score king most often this season: the safest pick.</p></div><div class="rail">${tops}</div></section>
   <section class="block fade"><div class="block-h"><h2 class="kh"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>Box score kings, by category</h2><p>How many times each player was box score king: best of both teams in the category. Ties count, like in Bodega.</p></div><div class="boards">${boards}</div></section>
@@ -559,6 +615,79 @@ function teamNewsBlock(n,nd){if(!nd)return"";const cur=nd.cur,feed=nd.feed;
    <div class="ngames" style="grid-template-columns:1fr"><div class="ngame"><div class="ng-h"><b>Injury report</b><span>${injU.length?injU.length+" listed":""}</span></div>${injU.length?injU.map(r=>prow(n,r[4],r[5],r[6])).join(""):`<p class="mute small">Nobody listed on the latest report${cur&&(cur.notSubmitted||[]).some(x=>teamOfReport(x.team)===n)?" (team has not submitted yet)":""}.</p>`}</div></div>
    ${items.length?`<div class="feed">${items.map(feedItemHTML).join("")}</div>`:`<p class="mute small">No recent transactions or rotation changes.</p>`}</section>`}
 async function newsData(){try{const [c,f]=await Promise.all(["current","feed"].map(x=>fetch("data/news/"+x+".json?t="+Date.now()).then(r=>r.ok?r.json():null)));return{cur:c,feed:f}}catch(e){return null}}
+/* ---------- matchup (two teams, six crowns) ---------- */
+let MP="all";
+const PER=[["5","Last 5"],["10","Last 10"],["all","Season"]];
+const NEAR={pts:3,reb:2,ast:2,tov:1};
+const SK={pts:"pts",reb:"reb",ast:"ast",tov:"tov",plus:"pm",minus:"pm"};
+const byAbbr=a=>Object.keys(TEAMS).find(n=>TEAMS[n][0]===String(a||"").trim().toUpperCase());
+function parseM(h){const m=h.slice(2).split("@");const a=Object.keys(TEAMS).find(x=>slug(x)===m[0]),b=Object.keys(TEAMS).find(x=>slug(x)===m[1]);return a&&b&&a!==b?[a,b]:null}
+function injMap(nd){const m=new Map();(nd?.cur?.rows||[]).forEach(r=>{const id=pid(playerOfReport(r[4]));if(id&&!m.has(id))m.set(id,r[5])});return m}
+function reportGames(nd){const s=new Map();const add=(mu,d,t)=>{const [a,h]=String(mu||"").split("@");const A=byAbbr(a),H=byAbbr(h);if(A&&H&&!s.has(A+"@"+H))s.set(A+"@"+H,{a:A,h:H,d,t})};
+  (nd?.cur?.rows||[]).forEach(r=>add(r[1],r[2],r[3]));(nd?.cur?.notSubmitted||[]).forEach(x=>add(x.matchup,x.date,""));return[...s.values()]}
+async function dbDoc(p){const f={"schedule/season":"schedule","matchups/bodega":"bodega"}[p];if(!f)return null;try{const r=await fetch("data/"+f+".json?t="+Date.now());return r.ok?await r.json():null}catch(e){return null}}
+function etISO(d,t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)return"";let h=+m[1];if(h<11)h+=12;const [mo,da,y]=String(d).split("/").map(Number);if(!y)return"";const guess=Date.UTC(y,mo-1,da,h,+m[2]);const s=new Date(guess).toLocaleString("sv-SE",{timeZone:"America/New_York"}).replace(" ","T");return new Date(guess-(Date.parse(s+"Z")-guess)).toISOString()}
+const parisT=t=>new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"});
+function dayShort(d){const t=new Date().toLocaleDateString("sv-SE",{timeZone:"America/New_York"});const x=new Date(d+"T12:00:00");const lb=x.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});return d===t?"Tonight · "+x.toLocaleDateString("en-US",{month:"short",day:"numeric"}):lb}
+function gTiles(d){const M=window._mup;if(!M)return"";return(M.days.get(d)||[]).map(g=>{const k=M.kOf(g);return`<a class="gt${k===M.key?" on":""}" href="#m-${k}"${k===M.key?' aria-current="true"':""}><span class="gt-t"><i class="dot" style="--c:${tcol(g.a)}"></i>${tab(g.a)}</span><span class="gt-at">@</span><span class="gt-t"><i class="dot" style="--c:${tcol(g.h)}"></i>${tab(g.h)}</span><small>${g.t?parisT(g.t):"TBD"}${M.bodegaOf(g)?' <b class="btag">Bodega</b>':""}</small></a>`}).join("")}
+async function pageMatchup(h){const c=await cur();const [nd,sc,bd]=await Promise.all([newsData(),dbDoc("schedule/season"),dbDoc("matchups/bodega")]);window._mnd=nd;
+  const now=Date.now();const BG=(bd?.games||[]).filter(g=>TEAMS[g.a]&&TEAMS[g.h]);
+  const bodegaOf=g=>BG.find(b=>b.a===g.a&&b.h===g.h&&Math.abs(Date.parse(b.d)-Date.parse(g.d))<=1.5*864e5);
+  const all=new Map();
+  (sc?.games||[]).forEach(([d,a,hh,t])=>{if(TEAMS[a]&&TEAMS[hh])all.set(d+"|"+a+"|"+hh,{d,a,h:hh,t})});
+  const rTime=new Map();(nd?.cur?.rows||[]).forEach(r=>{if(r[3]&&!rTime.has(r[1]))rTime.set(r[1],r[3])});
+  reportGames(nd).forEach(g=>{const p=String(g.d).split("/");if(p.length<3)return;const d=`${p[2]}-${p[0].padStart(2,"0")}-${p[1].padStart(2,"0")}`;
+    if([...all.values()].some(x=>x.a===g.a&&x.h===g.h&&Math.abs(Date.parse(x.d)-Date.parse(d))<=864e5))return;
+    all.set(d+"|"+g.a+"|"+g.h,{d,a:g.a,h:g.h,t:etISO(g.d,g.t||rTime.get(TEAMS[g.a][0]+"@"+TEAMS[g.h][0]))})});
+  const today=new Date().toLocaleDateString("sv-SE",{timeZone:"America/New_York"});const lim=new Date(now+21*864e5).toISOString().slice(0,10);
+  const up=[...all.values()].filter(g=>g.d>=today&&g.d<=lim).sort((x,y)=>{const p=x.d+(x.t||"~"),q=y.d+(y.t||"~");return p<q?-1:p>q?1:0});
+  const kOf=g=>slug(g.a)+"@"+slug(g.h);
+  let pair=h.startsWith("m-")?parseM(h):null;
+  if(!pair){const nx=up.find(g=>!g.t||Date.parse(g.t)>now-3*36e5);if(nx)pair=[nx.a,nx.h]}
+  window._mp=pair;const key=pair?slug(pair[0])+"@"+slug(pair[1]):"";
+  const sel=up.find(g=>kOf(g)===key);
+  const days=new Map();up.forEach(g=>{(days.get(g.d)||days.set(g.d,[]).get(g.d)).push(g)});
+  window._mup={days,key,bodegaOf,kOf};const day0=sel?sel.d:[...days.keys()][0];
+  const bThis=pair?BG.find(b=>b.a===pair[0]&&b.h===pair[1]&&Date.parse(b.dl)>now):null;
+  const bNext=BG.filter(b=>Date.parse(b.dl)>now).sort((x,y)=>x.dl.localeCompare(y.dl))[0];
+  const dlT=b=>new Date(b.dl).toLocaleString("en-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"});
+  const info=[sel?.t?`Tip-off ${new Date(sel.t).toLocaleString("en-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"})} (Paris)`:"",bThis?`<span class="btag">Bodega</span> ${esc(bThis.lbl)} · picks close ${esc(dlT(bThis))}`:""].filter(Boolean).join(" · ");
+  return`<div class="mtop fade"><h1 class="disp">Matchup<span>.</span></h1>
+  ${up.length?`<p class="pickh">Choose a game</p><div class="days" role="group" aria-label="Day">${[...days.keys()].map(d=>`<button type="button" data-day="${d}" aria-pressed="${d===day0}">${dayShort(d)}</button>`).join("")}</div><div class="gstrip" id="gstrip">${gTiles(day0)}</div>
+  <div class="mctl">${bNext&&!bThis?`<a class="linkbtn" href="#m-${slug(bNext.a)}@${slug(bNext.h)}">Next Bodega game →</a>`:""}</div>${info?`<p class="small" style="color:var(--ink);margin-top:2px">${info}</p>`:""}`:`<p class="mute small">The schedule is unavailable right now. Try reloading in a moment.</p>`}</div>
+  <div id="mbody">${pair?matchBody(pair,nd):""}</div>`}
+function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"?1e9:+MP;
+  const dOf=r=>c.games.get(r.g)?.d||"";
+  const roster=t=>[...c.ps.values()].filter(o=>o.tm===t).map(o=>({id:o.id,tm:t,rs:[...o.rows].sort((a,b)=>dOf(a).localeCompare(dOf(b))).slice(-n)})).filter(x=>x.rs.length);
+  const P=[...roster(A),...roster(H)];
+  const stOf=id=>{const s=inj.get(id);return s&&s!=="Available"?s:null};
+  const nm=id=>esc(nameOf(id));
+  const VERB={pts:"top scorer",reb:"top rebounder",ast:"top passer",tov:"turnover leader",plus:"best +/-",minus:"worst +/-"};
+  const kcat=([k,l])=>{const sk=SK[k];
+    const list=P.map(x=>({...x,cr:cnt(x.rs,k),near:NEAR[k]!=null?x.rs.filter(r=>!r.L[k]&&r.M[k]-r[sk]<=NEAR[k]).length:0,a:avg(x.rs,sk),mn:avg(x.rs,"min"),gp:x.rs.length,st:stOf(x.id)}))
+      .filter(x=>x.mn>=12||x.cr>0).sort((p,q)=>(p.st==="Out")-(q.st==="Out")||q.cr-p.cr||q.near-p.near||(k==="minus"?p.a-q.a:q.a-p.a)).slice(0,3);
+    const f=list[0];if(!f)return"";
+    const last=id=>nm(id).split(" ").slice(-1)[0];
+    const tie=list[1]&&list[1].cr===f.cr&&f.cr>0;
+    const say=f.cr===0?`Nobody in these two teams has owned this crown yet.`:`<b>${last(f.id)}</b> was the game's ${VERB[k]} <b>${f.cr} time${f.cr>1?"s":""}</b> in ${f.gp} games.`+(tie?` Tied with ${last(list[1].id)}${NEAR[k]!=null&&f.near!==list[1].near?`, but ${last(f.id)} came close ${f.near} times (vs ${list[1].near})`:""}.`:"");
+    const chip=x=>sk==="pm"?`${sg(x.a)} +/- per game`:`${f1(x.a)} ${({pts:"pts",reb:"reb",ast:"ast",tov:"TOV"})[sk]} per game`;
+    return`<section class="kcat"><h2 class="kh"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>${l}</h2><p>${say}</p>
+      <div class="pod">${list.map((x,i)=>`<div class="pslot${x.st==="Out"?" out":""}">${i===0&&f.cr>0?`<span class="rib">Favorite</span>`:`<span class="rib ghost">${i+1}</span>`}${card(x.id,x.tm,chip(x),0,[x.cr,x.gp])}${x.st?`<span class="stt">${pillOf(x.st)}</span>`:""}</div>`).join("")}</div></section>`};
+  const head=t=>{const r=c.rec[t];return`<a class="mteam" href="#t-${slug(t)}" style="--c:${tcol(t)}"><b>${esc(t)}</b><span>${r.w}-${r.l}</span></a>`};
+  const listed=[A,H].map(t=>{const seen=new Set();return[t,(nd?.cur?.rows||[]).filter(r=>teamOfReport(r[0])===t&&!seen.has(r[4])&&seen.add(r[4]))]});
+  const onReport=reportGames(nd).some(g=>(g.a===A&&g.h===H)||(g.a===H&&g.h===A));
+  const injNote=!nd?.cur?"The injury report is unavailable right now.":listed.some(x=>x[1].length)?"":onReport?"Nobody from these two teams is on the latest injury report.":"This game isn't on the official injury report yet: statuses will show here once the NBA publishes them.";
+  const h2h=[...c.games.values()].filter(g=>(g.h===A&&g.a===H)||(g.h===H&&g.a===A)).sort((a,b)=>a.d.localeCompare(b.d));
+  const kings=(g,k)=>(c.byGame.get(g.id)||[]).filter(r=>r.L[k]).map(r=>esc(nameOf(r.p).split(" ").slice(-1)[0])).join(", ");
+  return`<div class="mhead fade">${head(A)}<span class="vs">@</span>${head(H)}</div>
+  <div class="mper"><span class="perl">Count crowns over his…</span><div class="nchips" role="group" aria-label="Count crowns over">${PER.map(([k,l])=>`<button type="button" data-mp="${k}" aria-pressed="${k===MP}">${l}</button>`).join("")}</div>
+  </div><p class="small" style="color:var(--ink);margin:8px 0 0">On each card, <b>5/11</b> means: out of his 11 games in that period, he had the most in that category 5 times (both teams included).</p>
+  <div class="kgrid fade">${CATS.map(kcat).join("")}</div>
+  <section class="block fade"><div class="block-h"><h2>Injuries</h2></div>${injNote?`<p class="mute small">${injNote}</p>`:`<div class="ngames">${listed.filter(x=>x[1].length).map(([t,rs])=>`<div class="ngame"><div class="ng-h"><b>${esc(t)}</b></div>${rs.map(r=>prow(t,r[4],r[5],r[6])).join("")}</div>`).join("")}</div>`}</section>
+  ${h2h.length?`<section class="block fade"><div class="block-h"><h2>When they met</h2></div><div class="tbl-wrap"><table><thead><tr><th>Game</th>${CATS.map(([k])=>`<th style="text-align:left">${SHORT[k]}</th>`).join("")}</tr></thead><tbody>${h2h.map(g=>`<tr><td>${dateFr(g.d)} · ${tab(g.a)} ${g.as}-${g.hs} ${tab(g.h)}</td>${CATS.map(([k])=>`<td style="text-align:left">${kings(g,k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`:""}`}
+function wireMatchup(){document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-day]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));$("#gstrip").innerHTML=gTiles(b.dataset.day);$("#gstrip").scrollLeft=0});
+  const on=document.querySelector(".gt.on");if(on)on.scrollIntoView({block:"nearest",inline:"center"});
+  const mb=$("#mbody");if(mb)mb.addEventListener("click",e=>{const b=e.target.closest("[data-mp]");if(!b||!window._mp)return;MP=b.dataset.mp;mb.innerHTML=matchBody(window._mp,window._mnd)})}
 function notFound(){return`<div class="empty fade"><h1 class="disp" style="font-size:48px">Not found</h1><p>This player or team isn't in the database. <a href="#" style="text-decoration:underline">Back to the season</a></p></div>`}
 
 function crumbs(h){
@@ -566,6 +695,7 @@ function crumbs(h){
   if(h==="equipes")tr.push(["Teams"]);
   else if(h==="stats")tr.push(["Stats"]);
   else if(h==="news")tr.push(["News"]);
+  else if(h==="matchup"||h.startsWith("m-"))tr.push(["Matchup"]);
   else if(h.startsWith("t-")){const n=Object.keys(TEAMS).find(x=>slug(x)===h.slice(2));tr.push(["Teams","#equipes"],[n||"Team"])}
   else if(h.startsWith("p-")){const id=+h.slice(2);const P=CUR?.byId.get(id);const tm=CUR?.ps.get(id)?.tm||(P&&P.t>=CUR.meta.season?P.tm:null);
     if(tm&&TEAMS[tm])tr.push(["Teams","#equipes"],[tm,"#t-"+slug(tm)]);else tr.push(["Stats","#stats"]);tr.push([P?P.n:"Player"])}
@@ -578,7 +708,7 @@ async function route(){
   const h=decodeURIComponent(location.hash.slice(1));const app=$("#app");
   document.documentElement.style.removeProperty("--team");
   document.querySelectorAll("[data-nav]").forEach(a=>a.toggleAttribute("aria-current",false));
-  const nav=h.startsWith("t-")||h==="equipes"?"equipes":h==="news"?"news":h==="stats"?"stats":h.startsWith("p-")?"":"home";
+  const nav=h.startsWith("t-")||h==="equipes"?"equipes":h==="news"?"news":h==="matchup"||h.startsWith("m-")?"matchup":h==="stats"?"stats":h.startsWith("p-")?"":"home";
   if(window._unsub){try{window._unsub()}catch(e){}window._unsub=null}
   const na=document.querySelector(`[data-nav="${nav}"]`);if(na)na.setAttribute("aria-current","page");
   app.innerHTML=`<div class="loading"><i></i>Loading stats…</div>`;
@@ -589,6 +719,7 @@ async function route(){
     else if(h==="equipes")html=await pageTeams();
     else if(h==="news")html=await pageNews();
     else if(h==="stats")html=await pageRanks();
+    else if(h==="matchup"||h.startsWith("m-"))html=await pageMatchup(h);
     else html=await pageHome();
     if(h)html=crumbs(h)+`<div style="margin-top:10px">${searchBox("q",false)}</div>`+html;
     const c=CUR;
@@ -600,15 +731,18 @@ async function route(){
     if(h.startsWith("p-"))wireCareer();
     if(h==="news")wireNews();
     if(h==="stats")wireRanks();
+    if(h==="matchup"||h.startsWith("m-"))wireMatchup();
     wireSearch("q");window.scrollTo({top:0});
   }catch(e){app.innerHTML=`<div class="empty"><h1 class="disp" style="font-size:40px">Data unavailable</h1><p>The stats files couldn't be loaded. Try reloading in a moment.</p></div>`;console.error(e)}
 }
 function countUp(root){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;root.querySelectorAll(".line .big,.sticker .big").forEach(el=>{const t=el.textContent;const m=t.match(/^([+−]?)(\d+)(?:\.(\d))?(-(\d+))?$/);if(!m)return;const sgn=m[1],v=+(m[2]+"."+(m[3]||0)),dec=m[3]!=null,w2=m[5];const t0=performance.now(),D=700;const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);const cur=v*e;el.textContent=w2!=null?`${Math.round(+m[2]*e)}-${Math.round(+w2*e)}`:sgn+(dec?cur.toFixed(1):Math.round(cur));if(k<1)requestAnimationFrame(step);else el.textContent=t};requestAnimationFrame(step)})}
 function setSkin(k){document.body.classList.toggle("tang",k==="orange");document.querySelectorAll("[data-skin]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.skin===k)));try{localStorage.setItem("bs_skin",k)}catch(e){}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-skin]");if(b)setSkin(b.dataset.skin)});
-window.addEventListener("hashchange",route);
+let NAVN=0;window.addEventListener("hashchange",()=>{NAVN++;route()});
+document.addEventListener("click",e=>{const b=e.target.closest(".crumbs .bk");if(b&&NAVN>0){e.preventDefault();NAVN-=2;history.back()}});
 document.addEventListener("keydown",e=>{if(e.key==="/"&&document.activeElement.tagName!=="INPUT"){const i=$("#q");if(i){i.focus();e.preventDefault()}}});
 route();
 </script>
+
 
 </body></html>
