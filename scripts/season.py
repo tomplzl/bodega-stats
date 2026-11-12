@@ -80,6 +80,7 @@ def main():
             idx[k] = p
     known = {g["id"] for g in cur["games"]}
     added, failed = 0, []
+    src_error = None
     def find(name, team):
         w = name.split()
         p = idx.get(key(name)) or idx.get(key(" ".join(reversed(w))))
@@ -97,6 +98,7 @@ def main():
             sb = json.loads(get(f"{ESPN}/scoreboard?dates={date}"))
         except Exception as e:
             print("scoreboard", date, e)
+            src_error = f"scoreboard {date}: {e}"
             break
         complete = True
         for ev in sb.get("events", []):
@@ -195,6 +197,9 @@ def main():
     for n, o in (("current.json", cur), ("players.json", P), ("leaders.json", L), ("seasons.json", S)):
         json.dump(o, open(f"{D}/{n}", "w"), separators=(",", ":"), ensure_ascii=False)
     print(json.dumps({"nouveaux_matchs": added, "jusqu_au": cur["meta"]["through"]}))
+    if src_error and added == 0:
+        print("ECHEC : source ESPN injoignable ou format changé -> " + src_error, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

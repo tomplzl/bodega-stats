@@ -19,11 +19,20 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/season.py data
+      - name: Mark successful check
+        run: mkdir -p data/status && date -u +'{"at":"%Y-%m-%dT%H:%M:%SZ"}' > data/status/season.json
       - name: NBA schedule (Matchup tab)
-        run: python scripts/schedule.py data/schedule.json data/schedule.json || echo "schedule skipped"
+        id: schedule
+        continue-on-error: true
+        run: python scripts/schedule.py data/schedule.json data/schedule.json
       - name: Save
         run: |
           git config user.name "bodega-bot"
           git config user.email "bodega-bot@users.noreply.github.com"
           git add data
           git diff --cached --quiet || (git commit -m "Season $(date -u +%F)" && git pull --rebase && git push)
+      - name: Report schedule failure
+        if: steps.schedule.outcome == 'failure'
+        run: |
+          echo "The NBA schedule update failed (stats were saved). Check basketball-reference.com." 
+          exit 1

@@ -250,6 +250,10 @@ def main():
     summary["nouveaux_items"] = len(feed) - n0
     summary["a_ecrire"] = changed
     print(json.dumps(summary, ensure_ascii=False))
+    errs = [k for k in ("blessures", "transactions", "box_scores") if str(summary.get(k, "")).startswith("erreur")]
+    if len(errs) == 3:
+        print("ECHEC : les trois sources sont en erreur", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ for v in new.values(): games+=v
 cut=(today-dt.timedelta(days=1)).isoformat()
 games=sorted({(g[0],g[1],g[2]):g for g in games if g[0]>=cut}.values())
 changed=[[g[0],g[1],g[2]] for g in games]!=[[g[0],g[1],g[2]] for g in old if g[0]>=cut] or any(a!=b for a,b in zip(games,[g for g in old if g[0]>=cut]))
-if not ok and old:
-    print(json.dumps({'mois_ok':ok,'mois_erreur':fail,'echec_total':True})); sys.exit(0)
+if not ok:
+    print(json.dumps({'mois_ok':ok,'mois_erreur':fail,'echec_total':True})); sys.exit(1)
 json.dump({'games':games,'source':'basketball-reference.com','updatedAt':dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},open(dst,'w'),separators=(',',':'))
 print(json.dumps({'mois_ok':ok,'mois_erreur':fail,'matchs':len(games),'change':bool(changed),'echec_total':not ok}))
