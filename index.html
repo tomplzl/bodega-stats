@@ -303,6 +303,20 @@ body.tang .gt.on small,body.tang .gt.on .gt-at{color:var(--cream)}
 .mper .nchips{margin:0}
 .perl{font-family:var(--f-display);font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
 .mper p{color:var(--ink)}
+.h2h{display:grid;gap:14px;margin-top:14px}
+@media (min-width:900px){.h2h{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hcard{min-width:0;overflow:hidden;background:var(--surface);border-radius:var(--r);padding:16px 16px 18px}
+.hdate{font-family:var(--f-display);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.hscore{display:flex;align-items:baseline;gap:10px;margin-top:4px;font-family:var(--f-display);font-weight:900;font-variation-settings:"wdth" 118;text-transform:uppercase;font-size:clamp(20px,6.4vw,30px);white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.1}
+.hscore span{opacity:.55}.hscore .hw{opacity:1}.hscore .hdash{opacity:.4}
+.hgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;margin-top:14px}
+@media (min-width:640px) and (max-width:899px){.hgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.hc{border-left:4px solid var(--c);padding:2px 0 2px 10px;min-width:0}
+.hc small{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.hc b{display:block;font-family:var(--f-display);font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2}
+.hc span{display:block;font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.hc span a{color:inherit;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.hc span i{font-style:normal;font-weight:500;opacity:.7}
 .kgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px 22px;margin-top:22px}
 @media (max-width:1000px){.kgrid{grid-template-columns:1fr}}
 .kcat{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -694,7 +708,14 @@ function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"
   <div class="kgrid fade">${CATS.map(kcat).join("")}</div>
   ${rosterBlock(A,H,stOf)}
   <section class="block fade"><div class="block-h"><h2>Injuries</h2></div>${injNote?`<p class="mute small">${injNote}</p>`:`<div class="ngames">${listed.filter(x=>x[1].length).map(([t,rs])=>`<div class="ngame"><div class="ng-h"><b>${esc(t)}</b></div>${rs.map(r=>prow(t,r[4],r[5],r[6])).join("")}</div>`).join("")}</div>`}</section>
-  ${h2h.length?`<section class="block fade"><div class="block-h"><h2>When they met</h2></div><div class="tbl-wrap"><table><thead><tr><th>Game</th>${CATS.map(([k])=>`<th style="text-align:left">${SHORT[k]}</th>`).join("")}</tr></thead><tbody>${h2h.map(g=>`<tr><td>${dateFr(g.d)} · ${tab(g.a)} ${g.as}-${g.hs} ${tab(g.h)}</td>${CATS.map(([k])=>`<td style="text-align:left">${kings(g,k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`:""}`}
+  ${h2h.length?`<section class="block fade"><div class="block-h"><h2>Head-to-head</h2><p>${h2h.length===1?"Their only meeting":"Their "+h2h.length+" meetings"} this season, latest first. Who won each crown?</p></div><div class="h2h">${h2h.slice().reverse().map(g=>h2hCard(g)).join("")}</div></section>`:""}`}
+function h2hCard(g){const c=CUR;const rs=c.byGame.get(g.id)||[];const aw=g.as>g.hs;
+  const val=(r,k)=>k==="plus"||k==="minus"?sgi(r.pm):r[k]+" "+({pts:"pts",reb:"reb",ast:"ast",tov:"TOV"})[k];
+  const cell=([k,l])=>{const ks=rs.filter(r=>r.L[k]);if(!ks.length)return"";const t=ks[0].tm;
+    return`<div class="hc" style="--c:${tcol(t)}"><small>${esc(l)}</small><b>${val(ks[0],k)}</b><span>${ks.map(r=>`<a href="#p-${r.p}">${esc(nameOf(r.p).split(" ").slice(-1)[0])}</a>`+(new Set(ks.map(x=>x.tm)).size>1?`<i> ${esc(tab(r.tm))}</i>`:"")).join(", ")}${new Set(ks.map(x=>x.tm)).size>1?"":`<i> · ${esc(tab(t))}</i>`}</span></div>`};
+  return`<article class="hcard"><div class="hdate">${dateFr(g.d)} · at ${esc(g.h)}</div>
+  <div class="hscore"><span class="${aw?"hw":""}" style="--c:${tcol(g.a)}">${esc(tab(g.a))} ${g.as}</span><span class="hdash">–</span><span class="${aw?"":"hw"}" style="--c:${tcol(g.h)}">${g.hs} ${esc(tab(g.h))}</span></div>
+  <div class="hgrid">${CATS.map(cell).join("")}</div></article>`}
 let MT=0;
 const pct=(rs,m,a)=>{const A=rs.reduce((s,r)=>s+(r[a]||0),0);return A?100*rs.reduce((s,r)=>s+(r[m]||0),0)/A:null};
 function rosterBlock(A,H,stOf){const c=CUR;const t=[A,H][MT];const n=1e9;const dOf=r=>c.games.get(r.g)?.d||"";
