@@ -14,6 +14,7 @@ Ligne de saison (18 colonnes) : [saison, équipe, MJ, min, pts, reb, ast, stl, b
 Ligne de match dans current.json : [match, joueur, équipe, min, pts, reb, ast, tov, +/-, titulaire, stl, blk, fgm, fga, 3pm, 3pa, ftm, fta]
 """
 import json, os
+from decimal import Decimal, ROUND_HALF_UP
 
 TOT = ("min", "pts", "reb", "ast", "stl", "blk", "tov", "pm", "tpm", "fga", "tpa", "fta", "fgm", "tpmA", "ftm")
 BIO = {"g": 0, "p": 0, "r": 0, "a": 0, "tp": 0, "pos": None, "h": None, "b": None, "j": None, "dy": None, "dn": None, "c": None, "po": 0}
@@ -34,6 +35,12 @@ def wr(path, obj):
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(s)
     os.replace(tmp, path)
+
+
+def r1(x):
+    """Arrondi à 1 décimale identique à celui du site (toFixed en JavaScript), pour que les chiffres ne bougent pas
+    quand une saison passe de « en cours » (calculée par le site) à « figée » (calculée ici)."""
+    return float(Decimal(x).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
 def ppath(D, pid):
@@ -90,7 +97,7 @@ def career_row(p, rows):
 
 def season_lines(cur):
     """Saison en cours -> lignes de saison par (joueur, équipe), dans l'ordre de première apparition.
-    Renvoie [(id, ligne 18 colonnes, {pts, reb, ast exacts})]."""
+    Renvoie [(id, ligne 18 colonnes, totaux exacts de la saison)]."""
     season, agg = cur["meta"]["season"], {}
     for r in cur["rows"]:
         a = agg.setdefault((r[1], r[2]), [0] * 15)
@@ -100,9 +107,10 @@ def season_lines(cur):
     out = []
     for (pid, team), a in agg.items():
         g, mn, pts, reb, ast, tov, pm, stl, blk, fgm, fga, tpm, tpa, ftm, fta = a
-        av = lambda v: round(v / g, 1)
-        pc = lambda m, n: round(100 * m / n, 1) if n else None
-        out.append((pid, [season, team, g, av(mn), av(pts), av(reb), av(ast), av(stl), av(blk), av(tov), av(pm), pc(fgm, fga), pc(tpm, tpa), pc(ftm, fta), av(fga), av(tpa), av(fta), av(tpm)], {"pts": pts, "reb": reb, "ast": ast}))
+        av = lambda v: r1(v / g)
+        pc = lambda m, n: r1(100 * m / n) if n else None
+        out.append((pid, [season, team, g, av(mn), av(pts), av(reb), av(ast), av(stl), av(blk), av(tov), av(pm), pc(fgm, fga), pc(tpm, tpa), pc(ftm, fta), av(fga), av(tpa), av(fta), av(tpm)],
+                    {"min": mn, "pts": pts, "reb": reb, "ast": ast, "stl": stl, "blk": blk, "tov": tov, "pm": pm, "tpm": tpm, "fga": fga, "tpa": tpa, "fta": fta, "fgm": fgm, "ftm": ftm}))
     return out
 
 
@@ -184,8 +192,12 @@ def freeze_season(D, cur, new_season, through):
                 career["r"].append(c)
                 cidx[pid] = c
             t = {k: v for k, v in zip(TOT, c[6:]) if v is not None}
-            for r, _ in lst:
-                c[5] += add_row_totals(t, r)
+            if t.get("tpm") is None and t.get("tpmA") is not None:
+                t["tpm"] = t.pop("tpmA")
+            for r, ex in lst:  # totaux exacts des feuilles de match (comme le site pendant la saison), pas moyenne x matchs
+                c[5] += r[2]
+                for k, v in ex.items():
+                    t[k] = t.get(k, 0) + v
             c[1:5] = [p["n"], p["f"], p["t"], p["tm"]]
             if t.get("tpm") is None and t.get("tpmA") is None:
                 t.pop("tpmA", None)
