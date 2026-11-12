@@ -388,14 +388,18 @@ const tcol=n=>TEAMS[n]?.[1]||"#5B6778";
 const tab=n=>TEAMS[n]?.[0]||n;
 const dateFr=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{day:"numeric",month:"short"});
 const D={};
-async function load(n){if(!D[n])D[n]=fetch("data/"+n+".json").then(r=>{if(!r.ok)throw new Error(n);return r.json()});return D[n]}
+async function load(n){if(!D[n])D[n]=fetch("data/"+n+".json").then(r=>{if(!r.ok)throw new Error(n);return r.json()}).catch(e=>{delete D[n];throw e});return D[n]}
+/* Data layout: current.json = live season (box scores + recent players). History is frozen and loaded on demand:
+   players/<id>.json (one per player), seasons/<year>.json, career.json, search.json. See scripts/store.py. */
+const PF=new Map();
+async function playerDoc(id){if(!Number.isFinite(id))return null;if(PF.has(id))return PF.get(id);const r=await fetch("data/players/"+id+".json");let d=null;if(r.ok)d=await r.json();else if(r.status!==404)throw new Error("player "+id);PF.set(id,d);return d}
 
 /* ---------- current season model ---------- */
 let CUR=null;
 async function cur(){
   if(CUR)return CUR;
-  const [c,p]=await Promise.all([load("current"),load("players")]);
-  const byId=new Map(p.p.map(x=>[x.i,x]));
+  const c=await load("current");
+  const byId=new Map(c.players.map(x=>[x.i,x]));
   const games=new Map(c.games.map(g=>[g.id,g]));
   const rows=c.rows.map(r=>({g:r[0],p:r[1],tm:r[2],min:r[3],pts:r[4],reb:r[5],ast:r[6],tov:r[7],pm:r[8],st:r[9],stl:r[10],blk:r[11],fgm:r[12],fga:r[13],tpm:r[14],tpa:r[15],ftm:r[16],fta:r[17]}));
   const byGame=new Map();rows.forEach(r=>{(byGame.get(r.g)||byGame.set(r.g,[]).get(r.g)).push(r)});
@@ -414,14 +418,17 @@ async function cur(){
   const ps=new Map();rows.forEach(r=>{let o=ps.get(r.p);if(!o){o={id:r.p,rows:[],tm:r.tm};ps.set(r.p,o)}o.rows.push(r);o.tm=r.tm});
   CUR={meta:c.meta,games,rows,byGame,rec,ps,byId,teams:c.teams};return CUR}
 function ini(n){const w=String(n).replace(/ (Jr\.|Sr\.|II|III|IV)$/,"").split(" ");return (w[0][0]+(w.length>1?w[w.length-1][0]:"")).toUpperCase()}
-function card(id,tm,chip,big,badge){const P=CUR.byId.get(id)||{n:"?"};const j=P.j&&P.j!=="nan"?P.j:"";return`<a class="pcard" href="#p-${id}" style="--c:${tcol(tm)}"${big?' data-big="1"':""}><span class="no" aria-hidden="true">${esc(j)}</span><span class="tm">${esc(tab(tm))}</span>${badge?`<span class="bdg" title="Box score king ${badge[0]} times in ${badge[1]} games"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>${badge[0]}/${badge[1]}</span>`:""}<span class="ini" aria-hidden="true">${esc(ini(P.n))}</span><span class="nm"><b${P.n.split(" ").some(w=>w.length>10)||P.n.length>18?' class="lg"':""}>${esc(P.n)}</b>${chip?`<span>${chip}</span>`:""}</span></a>`}
+function card(id,tm,chip,big,badge){const P=CUR.byId.get(id)||PF.get(id)?.p||{n:"?"};const j=P.j&&P.j!=="nan"?P.j:"";return`<a class="pcard" href="#p-${id}" style="--c:${tcol(tm)}"${big?' data-big="1"':""}><span class="no" aria-hidden="true">${esc(j)}</span><span class="tm">${esc(tab(tm))}</span>${badge?`<span class="bdg" title="Box score king ${badge[0]} times in ${badge[1]} games"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>${badge[0]}/${badge[1]}</span>`:""}<span class="ini" aria-hidden="true">${esc(ini(P.n))}</span><span class="nm"><b${P.n.split(" ").some(w=>w.length>10)||P.n.length>18?' class="lg"':""}>${esc(P.n)}</b>${chip?`<span>${chip}</span>`:""}</span></a>`}
 const avg=(rs,k)=>rs.length?rs.reduce((s,r)=>s+r[k],0)/rs.length:null;
 const cnt=(rs,k)=>rs.filter(r=>r.L[k]).length;
 const nameOf=id=>CUR.byId.get(id)?.n||"?";
 
 /* ---------- search ---------- */
 let IDX=null;
-async function searchIdx(){if(IDX)return IDX;const p=await load("players");
+async function searchIdx(){if(IDX)return IDX;const [s,c]=await Promise.all([load("search"),cur()]);
+  const all=new Map(s.p.map(e=>[e[0],{i:e[0],n:e[1],f:e[2],t:e[3],tm:e[4],g:e[5]}]));
+  for(const x of c.byId.values())all.set(x.i,{...(all.get(x.i)||{g:0}),...x});
+  const p={p:[...all.values()].map(x=>({...x,g:x.g+(c.ps.get(x.i)?.rows.length||0)})),meta:c.meta};
   IDX=[...Object.keys(TEAMS).map(n=>({k:"t",n,q:norm(n+" "+tab(n)+" "+(CUR?.teams[n]?.city||"")),sub:"Team",c:tcol(n)})),
        ...p.p.map(x=>({k:"p",id:x.i,n:x.n,q:norm(x.n),sub:`${x.f===x.t?x.f:x.f+"–"+(x.t+1)} · ${x.tm||""}`,g:x.g,c:x.t>=p.meta.season?tcol(x.tm):null}))];return IDX}
 function searchBox(id,auto){return`<div class="search" role="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="${id}" type="search" autocomplete="off" placeholder="Player or team" aria-label="Search for a player or team"${auto?" autofocus":""}><div class="results" hidden></div></div>`}
@@ -431,6 +438,7 @@ function wireSearch(id){const inp=$("#"+id);if(!inp)return;const box=inp.parentE
   inp.addEventListener("input",async()=>{const q=norm(inp.value);if(q.length<2){list=[];draw();return}const I=await searchIdx();const parts=q.split(" ");
     list=I.filter(it=>parts.every(p=>it.q.includes(p))).map(it=>({it,s:(it.k==="t"?1e6:0)+(it.q.startsWith(q)?5e5:0)+(it.q.split(" ").some(w=>w.startsWith(parts[0]))?1e5:0)+(it.g||0)+(it.c?2e3:0)})).sort((a,b)=>b.s-a.s).slice(0,9).map(x=>x.it);sel=0;draw()});
   inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){sel=Math.min(sel+1,list.length-1);draw();e.preventDefault()}else if(e.key==="ArrowUp"){sel=Math.max(sel-1,0);draw();e.preventDefault()}else if(e.key==="Enter"&&list[sel]){go(list[sel]);e.preventDefault()}else if(e.key==="Escape"){box.hidden=true}});
+  inp.addEventListener("focus",()=>{searchIdx().catch(()=>{})});
   inp.addEventListener("blur",()=>setTimeout(()=>box.hidden=true,180))}
 
 /* ---------- pages ---------- */
@@ -439,19 +447,18 @@ function standTable(c,conf){const s=standings(c,conf),lead=s[0];
   return`<div class="tbl-wrap"><table><thead><tr><th>${conf==="E"?"East":"West"}</th><th>W</th><th>L</th><th>%</th><th>GB</th><th>Diff</th></tr></thead><tbody>${s.map((t,i)=>`<tr class="link${i===6||i===10?" cut":""}" data-href="#t-${slug(t.n)}"><td class="t"><span class="mute num" style="width:16px">${i+1}</span><span class="dot" style="--c:${tcol(t.n)}"></span>${esc(t.n)}</td><td>${t.w}</td><td>${t.l}</td><td class="mute">${(t.pct).toFixed(3).replace(/^0/,"")}</td><td class="mute">${i?f1(((lead.w-t.w)+(t.l-lead.l))/2):"–"}</td><td class="${t.diff>0?"w":t.diff<0?"l":""}">${sg(t.diff)}</td></tr>`).join("")}</tbody></table></div>`}
 
 async function pageHome(){
-  const c=await cur();const p=await load("players");
+  const c=await cur();
   const boards=CATS.map(([k,l])=>{const arr=[...c.ps.values()].map(o=>({o,n:cnt(o.rows,k),gp:o.rows.length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.gp-b.gp).slice(0,5);
     return`<div class="board"><h3><span>${l}</span><small class="kc" title="Box score king / games played"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>/ games</small></h3>${arr.map((x,i)=>`<a class="lrow" href="#p-${x.o.id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${tcol(x.o.tm)}"></span><span class="nm">${esc(nameOf(x.o.id))}</span><span class="v">${x.n}<small> / ${x.gp}</small></span></a>`).join("")}</div>`}).join("");
   const days=[...new Set([...c.games.values()].map(g=>g.d))].sort();const lastDay=days[days.length-1];
   const lastGames=[...c.games.values()].filter(g=>g.d===lastDay);
-  const seasons=new Set();Object.values(await load("teams")).forEach(a=>a.forEach(r=>seasons.add(r[0])));
   const UNIT={pts:"pts",reb:"reb",ast:"ast",tov:"tov"};
   const tops=CATS.map(([k,l])=>{const x=[...c.ps.values()].map(o=>({o,n:cnt(o.rows,k),gp:o.rows.length})).sort((a,b)=>b.n-a.n||a.gp-b.gp)[0];const chip=UNIT[k]?`${f1(avg(x.o.rows,k))} ${UNIT[k]} per game`:`${sg(avg(x.o.rows,"pm"))} +/- per game`;return`<div><span class="cat">${l}</span>${card(x.o.id,x.o.tm,chip,0,[x.n,x.gp])}</div>`}).join("");
   return`<div class="home-hero fade">
     <span class="eyebrow">Season ${seasonLbl(c.meta.season)} · data through ${dateFr(c.meta.through)}</span>
     <h1 class="disp">Season<br>${seasonLbl(c.meta.season)}<span>.</span></h1>
     ${searchBox("q",false)}
-    <span class="meta num">${p.p.length.toLocaleString("en-US")} players · ${seasons.size} seasons since 1946 · ${c.games.size} games this season</span>
+    <span class="meta num">${c.meta.counts.players.toLocaleString("en-US")} players · ${c.meta.counts.seasons} seasons since 1946 · ${c.games.size} games this season</span>
     <div class="howto"><b>How does it work?</b><p>In every game, we check who <strong>scored the most points</strong>, who <strong>grabbed the most rebounds</strong> and who <strong>dished the most assists</strong>. He's the <strong>box score king</strong> of the night, and that's exactly what a Bodega pick needs. Here, we count how many times each player wore the crown. Classic averages and totals live in the <strong>Stats</strong> tab.</p><p class="ex"><strong>“8/9”</strong>: in his 9 games, he was box score king in points 8 times.<br><strong>+/-</strong>: how many points his team was up or down while he was on the floor. Best +/-: the player whose team outscored the opponent by the most with him on the floor.</p></div>
   </div>
   <section class="block fade"><div class="block-h"><h2>Safe bets</h2><p>For each Bodega category, the player who was box score king most often this season: the safest pick.</p></div><div class="rail">${tops}</div></section>
@@ -477,7 +484,7 @@ async function pageTeam(sl){
   const gameIds=new Set(r.games.map(x=>x.g.id));
   const leadIn=(k,filter)=>{const m=new Map();let tot=0;r.games.filter(filter).forEach(x=>{tot++;(c.byGame.get(x.g.id)||[]).forEach(row=>{if(row.L[k]&&row.tm===n)m.set(row.p,(m.get(row.p)||0)+1)})});return{tot,list:[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3)}};
   const leadBlock=(k,l,filter,ctx)=>{const L=leadIn(k,filter);return`<div class="board"><h3><span>${l}</span><small>${ctx}</small></h3>${L.list.length?L.list.map(([id,v],i)=>`<a class="lrow" href="#p-${id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${tcol(n)}"></span><span class="nm">${esc(nameOf(id))}</span><span class="v">${v}<small> / ${L.tot}</small></span></a>`).join(""):`<p class="mute" style="margin:8px 0 12px;font-size:13px">No box score kings on this team yet.</p>`}</div>`};
-  const hist=(await load("teams"))[c.teams[n]?.id]||[];
+  const hist=[...((await load("teams"))[c.teams[n]?.id]||[])];if(gp)hist.push([c.meta.season,r.w,r.l,c.teams[n]?.city||"",n,+(r.pf/gp).toFixed(1),+(r.pa/gp).toFixed(1)]);
   const nd=await newsData();
   return`<section class="hero fade"><div><span class="eyebrow"><i></i>${esc(c.teams[n]?.city||"")} · ${TEAMS[n][2]==="E"?"Eastern Conference":"Western Conference"}</span><h1 class="disp">${esc(n)}</h1>
       <div class="sub"><span><b>${ord(rank)}</b> in the ${TEAMS[n][2]==="E"?"East":"West"}</span><span>Avg. margin <b>${sg(diff)}</b></span><span>Scored <b>${f1(r.pf/gp)}</b> · allowed <b>${f1(r.pa/gp)}</b></span></div></div>
@@ -496,13 +503,18 @@ function teamChart(h,n){const W=1000,H=220,pl=34,pb=26,pt=10;const bw=(W-pl)/h.l
   [0,.25,.5,.75,1].forEach(v=>{s+=`<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v===.5?'stroke-dasharray="4 4"':""}/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${Math.round(v*100)}</text>`});
   h.forEach((r,i)=>{const p=r[1]/(r[1]+r[2]||1);const x=pl+i*bw+bw*.15;s+=`<rect x="${x.toFixed(1)}" y="${y(p).toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${(H-pb-y(p)).toFixed(1)}" rx="${Math.min(3,bw*.3).toFixed(1)}" fill="${i===h.length-1?"var(--ball)":"var(--fg)"}" opacity="${i===h.length-1?1:.82}"><title>${seasonLbl(r[0])} · ${r[3]} ${r[4]} · ${r[1]}-${r[2]}</title></rect>`;
     if(r[0]%10===0)s+=`<text x="${(x+bw*.35).toFixed(1)}" y="${H-8}" text-anchor="middle">${r[0]}</text>`});
-  const best=h.reduce((a,b)=>b[1]/(b[1]+b[2])>a[1]/(a[1]+a[2])?b:a);
+  const done=h.filter(r=>r[0]!==CUR.meta.season);const best=(done.length?done:h).reduce((a,b)=>b[1]/(b[1]+b[2])>a[1]/(a[1]+a[2])?b:a);
   return`<div class="chart"><div class="cap"><span>Best season: <b>${seasonLbl(best[0])}, ${best[1]}-${best[2]}</b> (${esc(best[3])} ${esc(best[4])})</span><span>Orange bar: current season</span></div>${s}</svg></div>`}
 
+function curSeasonRows(c,rows){const m=new Map();rows.forEach(r=>{(m.get(r.tm)||m.set(r.tm,[]).get(r.tm)).push(r)});
+  return[...m].map(([tm,rs])=>{const g=rs.length,s=k=>rs.reduce((a,r)=>a+(r[k]||0),0),a=k=>s(k)/g,pc=(x,y)=>s(y)?100*s(x)/s(y):null;
+    return[c.meta.season,tm,g,a("min"),a("pts"),a("reb"),a("ast"),a("stl"),a("blk"),a("tov"),a("pm"),pc("fgm","fga"),pc("tpm","tpa"),pc("ftm","fta"),a("fga"),a("tpa"),a("fta"),a("tpm")]})}
 async function pagePlayer(id){
-  const [c,p]=await Promise.all([cur(),load("players")]);const P=c.byId.get(+id);if(!P)return notFound();
-  const S=(await load("seasons"))[id]||[];const L=(await load("leaders"))[id]||{};
-  const me=c.ps.get(+id);const active=P.t>=c.meta.season;const tm=me?.tm||P.tm;
+  const [c,doc]=await Promise.all([cur(),playerDoc(+id)]);const R=c.byId.get(+id);if(!doc&&!R)return notFound();
+  const P={g:0,p:0,r:0,a:0,tp:0,po:0,...(doc?doc.p:{}),...(R||{})};if(doc&&P.j==null)P.j=doc.p.j;
+  const me=c.ps.get(+id);const now=me?me.rows:[];
+  const S=[...(doc?doc.s:[]),...curSeasonRows(c,now)];const L={...(doc?doc.l:{})};if(now.length)L[c.meta.season]=[now.length,...CATS.map(([k])=>cnt(now,k))];
+  const G=P.g+now.length,TP=P.tp+now.reduce((a,r)=>a+r.pts,0);const active=P.t>=c.meta.season;const tm=me?.tm||P.tm;
   setTeamVars(active?tm:"__");if(!active)document.documentElement.style.setProperty("--team","var(--fg)");
   const age=P.b?Math.floor((Date.now()-new Date(P.b))/31557600000):null;
   const sub=[active&&tm?`<a href="#t-${slug(tm)}"><b>${esc(tm)}</b></a>`:`<span>${P.f}–${P.t+1}</span>`,P.pos?`<span>${P.pos.split("").map(x=>({G:"Guard",F:"Forward",C:"Center"})[x]).join(" / ")}</span>`:"",P.h?`<span><b>${Math.floor(Math.round(P.h)/12)}′${Math.round(P.h)%12}″</b> (${(P.h*2.54/100).toFixed(2)} m)</span>`:"",age&&active?`<span>Age <b>${age}</b></span>`:"",P.dy?`<span>Draft ${P.dy}${P.dn?` · <b>${ord(P.dn)}</b> pick`:""}</span>`:"",P.c&&P.c!=="USA"?`<span>${esc(P.c)}</span>`:""].filter(Boolean).join("");
@@ -516,7 +528,7 @@ async function pagePlayer(id){
   const ls=Object.keys(L).map(Number).sort();
   const leadHist=ls.length?`<section class="block fade"><div class="block-h"><h2 class="kh"><svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5l4.6 3.6L12 4.5l4.4 7.6L21 8.5l-1.6 10H4.6z" fill="currentColor"/><rect x="4.6" y="19.6" width="14.8" height="1.9" rx=".9" fill="currentColor"/></svg>Box score king, season by season</h2><p>Share of his games where he was box score king in each category. Regular seasons since ${seasonLbl(ls[0])}.</p></div><div class="tbl-wrap"><table><thead><tr><th>Season</th><th>GP</th>${CATS.map(([k])=>`<th>${SHORT[k]}</th>`).join("")}</tr></thead><tbody>${ls.slice().reverse().map(s=>{const v=L[s];return`<tr><td>${seasonLbl(s)}</td><td class="mute">${v[0]}</td>${v.slice(1).map(x=>`<td>${x?`${Math.round(100*x/v[0])}%`:"<span class=mute>–</span>"}</td>`).join("")}</tr>`}).join("")}</tbody></table></div></section>`:"";
   window._S=S;
-  const career=S.length?`<section class="block fade"><div class="block-h"><h2>Career</h2><p>${P.g.toLocaleString("en-US")} regular-season games · ${P.tp.toLocaleString("en-US")} points${P.po?` · ${P.po} playoff games`:""}.</p></div>${careerChart(S)}
+  const career=S.length?`<section class="block fade"><div class="block-h"><h2>Career</h2><p>${G.toLocaleString("en-US")} regular-season games · ${TP.toLocaleString("en-US")} points${P.po?` · ${P.po} playoff games`:""}.</p></div>${careerChart(S)}
     <div class="tbl-wrap"><table><thead><tr><th>Season</th><th>Team</th><th>GP</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Stl</th><th>Blk</th><th>TOV</th><th>+/-</th><th>FG%</th><th>3P%</th><th>FT%</th></tr></thead><tbody>${S.slice().reverse().map(r=>`<tr><td>${seasonLbl(r[0])}</td><td class="t" style="display:table-cell;font-weight:500"><span class="dot" style="--c:${tcol(r[1])};display:inline-block;margin-right:8px;vertical-align:middle"></span>${esc(r[1])}</td><td class="mute">${r[2]}</td>${[3,4,5,6,7,8,9].map(i=>`<td>${f1(r[i])}</td>`).join("")}<td>${r[10]==null?"<span class=mute>–</span>":sg(r[10])}</td>${[11,12,13].map(i=>`<td class="mute">${r[i]==null?"–":f1(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`:"";
   const chip=rows.length?`${f1(avg(rows,"pts"))} pts · ${f1(avg(rows,"reb"))} reb · ${f1(avg(rows,"ast"))} ast`:`${f1(P.p)} pts career`;
   return`<div class="player-hero fade">${card(+id,active?tm:(S.length?S[S.length-1][1]:tm),chip,1)}<section class="hero"><div><span class="eyebrow"><i></i>${active?"Active":"Career "+P.f+"–"+(P.t+1)}</span><h1 class="disp">${esc(P.n)}</h1><div class="sub">${sub}</div></div></section></div>
@@ -586,7 +598,11 @@ async function wireNews(){
 /* ---------- stats (leaderboards) ---------- */
 let RK={season:null,mode:"avg"};const RKOPEN=new Set();
 const RKCATS=[["pts","Points"],["reb","Rebounds"],["ast","Assists"],["stl","Steals"],["blk","Blocks"],["tpm","3-pointers made"],["fg","Field goal %","pct"],["tp","3-point %","pct"],["ft","Free throw %","pct"],["pm","Plus/minus","pm"],["min","Minutes"],["tov","Turnovers"]];
-async function pageRanks(){const c=await cur();const S=await load("seasons");const ss=new Set();Object.values(S).forEach(a=>a.forEach(r=>ss.add(r[0])));
+const RKD={};
+async function rkEnsure(){const s=RK.season;if(s===String(CUR.meta.season)||RKD[s])return;
+  if(s==="career"){RKD[s]=(await load("career")).r;return}
+  const d=await load("seasons/"+s);const m=new Map();d.r.forEach(x=>{(m.get(x[0])||m.set(x[0],{n:x[1],rows:[]}).get(x[0])).rows.push([d.y,x[2],...x.slice(3)])});RKD[s]=m}
+async function pageRanks(){const c=await cur();const ss=new Set([c.meta.season,...c.meta.hist]);
   if(RK.season==null)RK.season=String(c.meta.season);
   const opts=[...ss].sort((a,b)=>b-a).map(s=>`<option value="${s}">${seasonLbl(s)}${s===c.meta.season?" (current)":""}</option>`).join("");
   return`<div class="home-hero fade" style="padding-bottom:6px"><span class="eyebrow">Averages and totals</span><h1 class="disp">Stats<span>.</span></h1>
@@ -596,16 +612,24 @@ async function pageRanks(){const c=await cur();const S=await load("seasons");con
   <section class="block"><div class="block-h"><p id="rknote"></p></div><div class="boards" id="rkb"></div></section>`}
 function rkPlayers(){const c=CUR,season=RK.season;
   if(season===String(c.meta.season)){return[...c.ps.values()].map(o=>{const t={};["min","pts","reb","ast","stl","blk","tov","pm","fgm","fga","tpm","tpa","ftm","fta"].forEach(k=>t[k]=o.rows.reduce((a,r)=>a+(r[k]||0),0));return{id:o.id,n:nameOf(o.id),c:tcol(o.tm),gp:o.rows.length,t}})}
-  const S=D.__seasons,out=[];const career=season==="career";
-  for(const pid in S){let gp=0;const t={};let team=null,any=false;
-    for(const r of S[pid]){if(!career&&String(r[0])!==season)continue;any=true;const g=r[2];gp+=g;team=r[1];
+  const out=[];const career=season==="career";
+  const col=(P,team)=>P&&P.t>=c.meta.season?tcol(P.tm):(TEAMS[team]?tcol(team):"var(--faint)");
+  if(career){const K=["min","pts","reb","ast","stl","blk","tov","pm","tpm","fga","tpa","fta","fgm","tpmA","ftm"];const seen=new Set();
+    const live=(t,me)=>{if(t.tpm==null&&t.tpmA!=null)t.tpm=t.tpmA;["min","pts","reb","ast","stl","blk","tov","pm","tpm","fga","tpa","fta","fgm","ftm"].forEach(k=>t[k]=(t[k]||0)+me.rows.reduce((a,r)=>a+(r[k]||0),0));return me.rows.length};
+    for(const x of RKD.career||[]){const t={};K.forEach((k,i)=>{if(x[6+i]!=null)t[k]=x[6+i]});let gp=x[5],team=x[4];const P=c.byId.get(x[0]),me=c.ps.get(x[0]);
+      if(me){gp+=live(t,me);team=me.tm;seen.add(x[0])}if(!gp)continue;if(t.tpmA!=null&&t.tpm==null)t.tpm=t.tpmA;
+      out.push({id:x[0],n:P?P.n:x[1],c:col(P,team),gp,t,yrs:`${P?P.f:x[2]}–${(P?P.t:x[3])+1}`})}
+    for(const me of c.ps.values()){if(seen.has(me.id))continue;const t={};const gp=live(t,me);const P=c.byId.get(me.id);out.push({id:me.id,n:P?P.n:"?",c:col(P,me.tm),gp,t,yrs:P?`${P.f}–${P.t+1}`:""})}
+    return out.sort((a,b)=>(a.id<0)-(b.id<0)||(a.id<0?0:a.id-b.id))}
+  for(const [pid,o] of RKD[season]||[]){let gp=0;const t={};let team=null;
+    for(const r of o.rows){const g=r[2];gp+=g;team=r[1];
       const add=(k,v)=>{if(v==null)return;t[k]=(t[k]||0)+v*g};
       add("min",r[3]);add("pts",r[4]);add("reb",r[5]);add("ast",r[6]);add("stl",r[7]);add("blk",r[8]);add("tov",r[9]);add("pm",r[10]);add("tpm",r[17]);
       if(r[14]!=null){add("fga",r[14]);if(r[11]!=null)t.fgm=(t.fgm||0)+r[11]/100*r[14]*g}
       if(r[15]!=null){add("tpa",r[15]);if(r[12]!=null)t.tpmA=(t.tpmA||0)+r[12]/100*r[15]*g}
       if(r[16]!=null){add("fta",r[16]);if(r[13]!=null)t.ftm=(t.ftm||0)+r[13]/100*r[16]*g}}
-    if(!any||!gp)continue;if(t.tpmA!=null&&t.tpm==null)t.tpm=t.tpmA;
-    const P=CUR.byId.get(+pid);out.push({id:+pid,n:P?P.n:"?",c:P&&P.t>=CUR.meta.season?tcol(P.tm):(TEAMS[team]?tcol(team):"var(--faint)"),gp,t,yrs:P?`${P.f}–${P.t+1}`:""})}
+    if(!gp)continue;if(t.tpmA!=null&&t.tpm==null)t.tpm=t.tpmA;
+    const P=c.byId.get(pid);out.push({id:pid,n:o.n,c:col(P,team),gp,t,yrs:""})}
   return out}
 function drawRanks(){const b=$("#rkb");if(!b)return;const c=CUR;const sel=$("#rkSeason");sel.value=RK.season;
   document.querySelectorAll("[data-rk]").forEach(x=>x.setAttribute("aria-pressed",String(RK.mode===x.dataset.rk)));
@@ -622,7 +646,8 @@ function drawRanks(){const b=$("#rkb");if(!b)return;const c=CUR;const sel=$("#rk
     return`<div class="board"><h3><span>${l}</span><small>${kind==="pct"?"made":avgM?"per game":"total"}</small></h3>${shown.length?shown.map((x,i)=>`<a class="lrow" href="#p-${x.id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${x.c}"></span><span class="nm">${esc(x.n)}</span><span class="v">${fmt(x)}<small> · ${career?x.yrs:x.gp+" GP"}</small></span></a>`).join(""):`<p class="mute small" style="padding:6px 0 12px">Not tracked this season.</p>`}
       ${list.length>10?`<button type="button" class="more" data-more="${k}">${open?"Show less":`Show top ${Math.min(50,list.length)}`}</button>`:""}</div>`}).join("");
   b.innerHTML=boards;b.querySelectorAll("[data-more]").forEach(x=>x.onclick=()=>{const k=x.dataset.more;RKOPEN.has(k)?RKOPEN.delete(k):RKOPEN.add(k);drawRanks()})}
-async function wireRanks(){D.__seasons=await load("seasons");document.querySelectorAll("[data-rk]").forEach(x=>x.onclick=()=>{RK.mode=x.dataset.rk;drawRanks()});$("#rkSeason").onchange=e=>{RK.season=e.target.value;RKOPEN.clear();drawRanks()};drawRanks()}
+async function wireRanks(){const go=async()=>{try{await rkEnsure()}catch(e){const b=$("#rkb");if(b)b.innerHTML=`<p class="mute small">This season couldn't be loaded. Check your connection and try again.</p>`;return}drawRanks()};
+  document.querySelectorAll("[data-rk]").forEach(x=>x.onclick=()=>{RK.mode=x.dataset.rk;drawRanks()});$("#rkSeason").onchange=e=>{RK.season=e.target.value;RKOPEN.clear();go()};$("#rkSeason").value=RK.season;await go()}
 function teamOfItem(x){return x.kind==="inj"||!x.kind?teamOfReport(x.team):(Object.keys(TEAMS).find(n=>norm(x.team||"").includes(norm(n)))||x.team)}
 function feedItemHTML(x){const KT={inj:["Injury","ki"],tx:["Transaction","kt"],rot:["Rotation","kr"]};const k=x.kind||"inj";const tm=teamOfItem(x);
   const when=(()=>{const d=x.date&&/^\d{8}$/.test(x.date)?`${x.date.slice(0,4)}-${x.date.slice(4,6)}-${x.date.slice(6)}`:null;return d?dateFr(d):k==="tx"?dateFr(x.at.slice(0,10)):dateFr(x.at.slice(0,10))})();
@@ -739,7 +764,7 @@ function crumbs(h){
   else if(h==="news")tr.push(["News"]);
   else if(h==="matchup"||h.startsWith("m-"))tr.push(["Matchup"]);
   else if(h.startsWith("t-")){const n=Object.keys(TEAMS).find(x=>slug(x)===h.slice(2));tr.push(["Teams","#equipes"],[n||"Team"])}
-  else if(h.startsWith("p-")){const id=+h.slice(2);const P=CUR?.byId.get(id);const tm=CUR?.ps.get(id)?.tm||(P&&P.t>=CUR.meta.season?P.tm:null);
+  else if(h.startsWith("p-")){const id=+h.slice(2);const P=CUR?.byId.get(id)||PF.get(id)?.p;const tm=CUR?.ps.get(id)?.tm||(P&&P.t>=CUR.meta.season?P.tm:null);
     if(tm&&TEAMS[tm])tr.push(["Teams","#equipes"],[tm,"#t-"+slug(tm)]);else tr.push(["Stats","#stats"]);tr.push([P?P.n:"Player"])}
   else return"";
   const up=tr[tr.length-2][1];
