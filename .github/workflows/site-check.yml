@@ -1,0 +1,61 @@
+name: Site check
+on:
+  schedule:
+    - cron: "37 */3 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is the public site up and up to date?
+        run: |
+          python3 - <<'PY'
+          import json, sys, time, urllib.request, datetime as dt
+          base = "https://tomplzl.github.io/bodega-stats/"
+          def get(p):
+              with urllib.request.urlopen(urllib.request.Request(base + p + "?t=%d" % time.time(), headers={"User-Agent": "site-check"}), timeout=30) as r:
+                  return r.status, r.read()
+          st, html = get("index.html")
+          if st != 200 or b"Bodega" not in html:
+              sys.exit("site down: HTTP %s" % st)
+          iso = lambda s: dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+          repo = iso(json.load(open("data/status/news.json"))["at"])
+          try:
+              live = iso(json.loads(get("data/status/news.json")[1])["at"])
+          except Exception as e:
+              sys.exit("live status unreadable: %s" % e)
+          lag = (repo - live).total_seconds() / 3600
+          print("repo", repo, "live", live, "lag_h", round(lag, 2))
+          if lag > 2:
+              sys.exit("the site is not deploying: live data is %.1f h behind the repository" % lag)
+          PY
+      - name: Alert (opens an issue, @mentions owner -> e-mail)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          gh label create "$L" --color FF783D --description "Automatic failure alert" 2>/dev/null || true
+          if [ "$(gh issue list --label "$L" --state open --json number --jq length)" = "0" ]; then
+            gh issue create --label "$L" --title "Bodega Stats: the ${{ github.workflow }} update failed" --body "@tomplzl The **${{ github.workflow }}** workflow failed on $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          The site keeps showing the last good data. This issue closes itself as soon as a run succeeds again. If it stays open for more than a day, open a Claude conversation in the Bodega stat project and paste this link."
+          fi
+      - name: Close alert when back to normal
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          for n in $(gh issue list --label "$L" --state open --json number --jq '.[].number' 2>/dev/null); do
+            gh issue close "$n" --comment "Back to normal: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          done
