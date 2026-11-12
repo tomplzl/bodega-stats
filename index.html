@@ -712,7 +712,7 @@ function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"
 function h2hCard(g){const c=CUR;const rs=c.byGame.get(g.id)||[];const aw=g.as>g.hs;
   const val=(r,k)=>k==="plus"||k==="minus"?sgi(r.pm):r[k]+" "+({pts:"pts",reb:"reb",ast:"ast",tov:"TOV"})[k];
   const cell=([k,l])=>{const ks=rs.filter(r=>r.L[k]);if(!ks.length)return"";const t=ks[0].tm;
-    return`<div class="hc" style="--c:${tcol(t)}"><small>${esc(l)}</small><b>${val(ks[0],k)}</b><span>${ks.map(r=>`<a href="#p-${r.p}">${esc(nameOf(r.p).split(" ").slice(-1)[0])}</a>`+(new Set(ks.map(x=>x.tm)).size>1?`<i> ${esc(tab(r.tm))}</i>`:"")).join(", ")}${new Set(ks.map(x=>x.tm)).size>1?"":`<i> · ${esc(tab(t))}</i>`}</span></div>`};
+    return`<div class="hc" data-tc="${esc(t)}" style="--c:${tcol(t)}"><small>${esc(l)}</small><b>${val(ks[0],k)}</b><span>${ks.map(r=>`<a href="#p-${r.p}">${esc(nameOf(r.p).split(" ").slice(-1)[0])}</a>`+(new Set(ks.map(x=>x.tm)).size>1?`<i> ${esc(tab(r.tm))}</i>`:"")).join(", ")}${new Set(ks.map(x=>x.tm)).size>1?"":`<i> · ${esc(tab(t))}</i>`}</span></div>`};
   return`<article class="hcard"><div class="hdate">${dateFr(g.d)} · at ${esc(g.h)}</div>
   <div class="hscore"><span class="${aw?"hw":""}" style="--c:${tcol(g.a)}">${esc(tab(g.a))} ${g.as}</span><span class="hdash">–</span><span class="${aw?"":"hw"}" style="--c:${tcol(g.h)}">${g.hs} ${esc(tab(g.h))}</span></div>
   <div class="hgrid">${CATS.map(cell).join("")}</div></article>`}
@@ -787,7 +787,14 @@ async function route(){
   }catch(e){app.innerHTML=`<div class="empty"><h1 class="disp" style="font-size:40px">Data unavailable</h1><p>The stats files couldn't be loaded. Try reloading in a moment.</p></div>`;console.error(e)}
 }
 function countUp(root){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;root.querySelectorAll(".line .big,.sticker .big").forEach(el=>{const t=el.textContent;const m=t.match(/^([+−]?)(\d+)(?:\.(\d))?(-(\d+))?$/);if(!m)return;const sgn=m[1],v=+(m[2]+"."+(m[3]||0)),dec=m[3]!=null,w2=m[5];const t0=performance.now(),D=700;const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);const cur=v*e;el.textContent=w2!=null?`${Math.round(+m[2]*e)}-${Math.round(+w2*e)}`:sgn+(dec?cur.toFixed(1):Math.round(cur));if(k<1)requestAnimationFrame(step);else el.textContent=t};requestAnimationFrame(step)})}
-function setSkin(k){document.body.classList.toggle("tang",k==="orange");document.querySelectorAll("[data-skin]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.skin===k)));try{localStorage.setItem("bs_skin",k)}catch(e){}}
+/* ---------- team accent with enough contrast on the current background ---------- */
+const TEAM2={Hawks:"#C1D32F",Celtics:"#BA9653",Nets:"#FFFFFF",Hornets:"#1D1160",Bulls:"#000000",Cavaliers:"#FDBB30",Pistons:"#1D42BA",Pacers:"#FDBB30",Heat:"#F9A01B",Bucks:"#EEE1C6",Knicks:"#F58426",Magic:"#C4CED4","76ers":"#ED174C",Raptors:"#000000",Wizards:"#E31837",Mavericks:"#B8C4CA",Nuggets:"#FEC524",Warriors:"#FFC72C",Rockets:"#C4CED4",Clippers:"#1D428A",Lakers:"#FDB927",Grizzlies:"#12173F",Timberwolves:"#78BE20",Pelicans:"#C8102E",Thunder:"#EF3B24",Suns:"#E56020","Trail Blazers":"#000000",Kings:"#63727A",Spurs:"#000000",Jazz:"#F9A01B"};
+const rgbOf=c=>{c=String(c).trim();if(c[0]==="#"){const h=c.length===4?c.slice(1).split("").map(x=>x+x).join(""):c.slice(1,7);return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}const m=c.match(/[\d.]+/g);return m?m.slice(0,3).map(Number):[0,0,0]};
+const lum=c=>{const v=rgbOf(c).map(x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]};
+const contrast=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+function fixTeamAccents(root){(root||document).querySelectorAll("[data-tc]").forEach(el=>{let bg="",n=el;while(n&&n!==document.documentElement){const b=getComputedStyle(n).backgroundColor;if(b&&!/rgba?\(0, 0, 0, 0\)|transparent/.test(b)){bg=b;break}n=n.parentElement}if(!bg)bg=getComputedStyle(document.body).backgroundColor;
+  const t=el.dataset.tc,a=tcol(t),b=TEAM2[t]||a;el.style.setProperty("--c",contrast(a,bg)>=1.9||contrast(a,bg)>=contrast(b,bg)?a:b)})}
+function setSkin(k){document.body.classList.toggle("tang",k==="orange");document.querySelectorAll("[data-skin]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.skin===k)));try{localStorage.setItem("bs_skin",k)}catch(e){}fixTeamAccents()}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-skin]");if(b)setSkin(b.dataset.skin)});
 let NAVN=0;window.addEventListener("hashchange",()=>{NAVN++;route()});
 document.addEventListener("click",e=>{const b=e.target.closest(".crumbs .bk");if(b&&NAVN>0){e.preventDefault();NAVN-=2;history.back()}});
