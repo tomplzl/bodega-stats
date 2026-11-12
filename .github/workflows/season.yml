@@ -6,6 +6,7 @@ on:
   workflow_dispatch: {}
 permissions:
   contents: write
+  issues: write
 concurrency:
   group: data-update
   cancel-in-progress: false
@@ -36,3 +37,28 @@ jobs:
         run: |
           echo "The NBA schedule update failed (stats were saved). Check basketball-reference.com." 
           exit 1
+      - name: Alert (opens an issue, @mentions owner -> e-mail)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          gh label create "$L" --color FF783D --description "Automatic failure alert" 2>/dev/null || true
+          if [ "$(gh issue list --label "$L" --state open --json number --jq length)" = "0" ]; then
+            gh issue create --label "$L" --title "Bodega Stats: the ${{ github.workflow }} update failed" --body "@tomplzl The **${{ github.workflow }}** workflow failed on $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          The site keeps showing the last good data. This issue closes itself as soon as a run succeeds again. If it stays open for more than a day, open a Claude conversation in the Bodega stat project and paste this link."
+          fi
+      - name: Close alert when back to normal
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          for n in $(gh issue list --label "$L" --state open --json number --jq '.[].number' 2>/dev/null); do
+            gh issue close "$n" --comment "Back to normal: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          done
