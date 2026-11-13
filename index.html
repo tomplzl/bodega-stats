@@ -239,6 +239,15 @@ body.tang .nchips button[aria-pressed="true"]{background:var(--ink);color:var(--
 .pn{display:flex;flex-direction:column;font-size:14px;font-weight:600;min-width:0}
 .pn small{font-size:12px;font-weight:400;color:var(--faint)}
 .pn a:hover{color:var(--ball)}
+.avail{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border-radius:var(--r);padding:14px 16px;margin:16px 0 0;border-left:6px solid var(--fg)}
+.avail[data-st="o"]{border-left-color:var(--ink)}.avail[data-st="d"],.avail[data-st="q"]{border-left-color:var(--ball)}
+.avail b{display:block;font-family:var(--f-display);font-size:20px;font-weight:900;text-transform:uppercase;line-height:1.15}
+.avail b a{color:inherit}
+.avail small{display:block;font-size:12.5px;opacity:.8;margin-top:3px}
+.hl{border-left:4px solid var(--c);padding:2px 0 2px 10px;margin-top:10px;font-size:14px;line-height:1.5}
+.hl>b{display:block;font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.hl .hg{display:block}.hl .hg .pill{height:18px;font-size:10px;padding:0 7px;vertical-align:1px}
+.hl a,.ng-h a{color:inherit}
 .pill{display:inline-flex;justify-content:center;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
 .pill.o{background:var(--ink);color:var(--cream)}
 .pill.d{background:var(--ball);color:var(--ink)}
@@ -771,6 +780,39 @@ function crumbs(h){
   return`<nav class="crumbs" aria-label="Breadcrumb"><a class="bk" href="${up}" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>${tr.map((x,i)=>i===tr.length-1?`<span aria-current="page">${esc(x[0])}</span>`:`<a href="${x[1]}">${esc(x[0])}</a><span class="sep" aria-hidden="true">/</span>`).join("")}</nav>`}
 
 /* ---------- router ---------- */
+/* ---------- player availability (official NBA injury report) ---------- */
+let NDP=null,SCHP=null;
+function newsOnce(){if(!NDP)NDP=newsData();return NDP}
+function schedOnce(){if(!SCHP)SCHP=fetch("data/schedule.json").then(r=>r.ok?r.json():null).catch(()=>null);return SCHP}
+const whenP=iso=>new Date(iso).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"});
+function availHTML(st,title,lines){return`<section class="avail fade" data-st="${(ST[st]||["","a"])[1]}">${pillOf(st)}<div><b>${title}</b>${lines.filter(Boolean).map(x=>`<small>${x}</small>`).join("")}</div></section>`}
+async function paintAvail(app,id){
+  const c=CUR;if(!c)return;const me=c.ps.get(+id),P=c.byId.get(+id);if(!me||!P||P.t<c.meta.season)return;
+  const tm=me.tm;const [nd,sch]=await Promise.all([newsOnce(),schedOnce()]);if(!nd?.cur||!app.isConnected)return;
+  const rep=`Official NBA injury report · ${esc(whenP(nd.cur.report))} (Paris)`;
+  const vs=(a,h)=>{if(a!==tm&&h!==tm)return"";const opp=a===tm?h:a;return opp?` ${h===tm?"vs":"@"} <a href="#m-${slug(a)}@${slug(h)}">${esc(opp)}</a>`:""};
+  const row=(nd.cur.rows||[]).find(r=>pid(playerOfReport(r[4]))===+id);let html;
+  if(row){const A=byAbbr(String(row[1]).split("@")[0]),H=byAbbr(String(row[1]).split("@")[1]);const iso=etISO(row[2],row[3]);
+    html=availHTML(row[5],`${esc((ST[row[5]]||[row[5]])[0])}${vs(A,H)}`,[iso?esc(whenP(iso))+" (Paris)":"",row[6]?esc(row[6]):"",rep])}
+  else{const g=reportGames(nd).find(x=>x.a===tm||x.h===tm);
+    if(g){const iso=etISO(g.d,g.t);const pending=(nd.cur.notSubmitted||[]).some(x=>teamOfReport(x.team)===tm);
+      html=pending?availHTML("Probable",`No status yet${vs(g.a,g.h)}`,[iso?esc(whenP(iso))+" (Paris)":"","His team hasn't submitted its injury report yet.",rep]):availHTML("Available",`Available${vs(g.a,g.h)}`,[iso?esc(whenP(iso))+" (Paris)":"","Not on the injury report.",rep])}
+    else{const now=new Date().toISOString();const nx=(sch?.games||[]).filter(x=>(x[1]===tm||x[2]===tm)&&x[3]&&x[3]>now).sort((a,b)=>a[3].localeCompare(b[3]))[0];
+      if(!nx)return;html=`<section class="avail fade" data-st="n"><span class="pill p">Next</span><div><b>Next game${vs(nx[1],nx[2])}</b><small>${esc(whenP(nx[3]))} (Paris)</small><small>Not on the injury report yet: the NBA publishes it the day before the game.</small></div></section>`}}
+  const hero=app.querySelector(".player-hero");if(hero&&!app.querySelector(".avail"))hero.insertAdjacentHTML("afterend",html)}
+async function paintHomeAvail(app){
+  const nd=await newsOnce();if(!nd?.cur||!app.isConnected)return;const gs=reportGames(nd);if(!gs.length)return;
+  const day=gs.map(g=>g.d).sort((a,b)=>new Date(a)-new Date(b))[0];const today=gs.filter(g=>g.d===day);
+  const KEEP={Out:1,Doubtful:1,Questionable:1};
+  const fixSfx=x=>String(x).replace(/([a-z])(Jr\.|Sr\.|III|II|IV)$/,"$1 $2");
+  const last=(raw,dup)=>{const n=fixSfx(playerOfReport(raw));const id=pid(n);const w=n.split(" ");let sh=w.length>1?w.slice(1).join(" "):n;if(dup&&dup.has(sh))sh=w[0][0]+". "+sh;return id?`<a href="#p-${id}">${esc(sh)}</a>`:esc(sh)};
+  const card=g=>{const iso=etISO(g.d,g.t);const lines=[g.a,g.h].map(t=>{const seen=new Set();const rs=(nd.cur.rows||[]).filter(r=>teamOfReport(r[0])===t&&byAbbr(String(r[1]).split("@")[0])===g.a&&byAbbr(String(r[1]).split("@")[1])===g.h&&KEEP[r[5]]&&!seen.has(r[4])&&seen.add(r[4]));
+      const grp=["Out","Doubtful","Questionable"].map(st=>{const xs=rs.filter(r=>r[5]===st);const ln=xs.map(r=>{const w=fixSfx(playerOfReport(r[4])).split(" ");return w.slice(1).join(" ")});const dup=new Set(ln.filter((x,i)=>ln.indexOf(x)!==i));return xs.length?`<span class="hg">${pillOf(st)} ${xs.map(r=>last(r[4],dup)).join(", ")}</span>`:""}).join("");
+      return`<div class="hl" data-tc="${esc(t)}" style="--c:${tcol(t)}"><b>${esc(t)}</b>${grp||`<span class="mute">Everyone available</span>`}</div>`}).join("");
+    return`<div class="ngame"><div class="ng-h"><a href="#m-${slug(g.a)}@${slug(g.h)}"><b>${esc(tab(g.a))} @ ${esc(tab(g.h))}</b></a><span>${iso?esc(parisT(iso))+" Paris":""}</span></div>${lines}</div>`};
+  const lbl=new Date(etISO(day,"07:00")||Date.now()).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric",timeZone:"America/New_York"});
+  const html=`<section class="block fade" id="homeAvail"><div class="block-h"><h2>Who's out</h2><p>Games of ${esc(lbl)} (US date). Official NBA injury report of ${esc(whenP(nd.cur.report))} (Paris). Tap a game for the matchup, a name for the player. <a href="#news">Full report →</a></p></div><div class="ngames">${today.map(card).join("")}</div></section>`;
+  const hero=app.querySelector(".home-hero");if(hero&&!app.querySelector("#homeAvail")){hero.insertAdjacentHTML("afterend",html);fixTeamAccents(app)}}
 /* ---------- freshness (last successful automatic check) ---------- */
 let STATUS=null;
 function status(){if(!STATUS)STATUS=Promise.all(["season","news"].map(n=>fetch("data/status/"+n+".json?t="+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null)));return STATUS}
@@ -809,6 +851,7 @@ async function route(){
     if(h==="matchup"||h.startsWith("m-"))wireMatchup();
     wireSearch("q");window.scrollTo({top:0});
     paintStatus(app).catch(()=>{});
+    if(h.startsWith("p-"))paintAvail(app,h.slice(2)).catch(()=>{});else if(!h)paintHomeAvail(app).catch(()=>{});
   }catch(e){app.innerHTML=`<div class="empty"><h1 class="disp" style="font-size:40px">Data unavailable</h1><p>The stats files couldn't be loaded. Try reloading in a moment.</p></div>`;console.error(e)}
 }
 function countUp(root){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;root.querySelectorAll(".line .big,.sticker .big").forEach(el=>{const t=el.textContent;const m=t.match(/^([+−]?)(\d+)(?:\.(\d))?(-(\d+))?$/);if(!m)return;const sgn=m[1],v=+(m[2]+"."+(m[3]||0)),dec=m[3]!=null,w2=m[5];const t0=performance.now(),D=700;const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);const cur=v*e;el.textContent=w2!=null?`${Math.round(+m[2]*e)}-${Math.round(+w2*e)}`:sgn+(dec?cur.toFixed(1):Math.round(cur));if(k<1)requestAnimationFrame(step);else el.textContent=t};requestAnimationFrame(step)})}

@@ -25,6 +25,7 @@ def load(d, n):
 
 # ---------------- injuries ----------------
 INJ = "https://ak-static.cms.nba.com/referee/injury/Injury-Report_{d}_{t}.pdf"
+HEADER = {"GameDate", "GameTime", "Matchup", "Team", "PlayerName", "CurrentStatus", "Reason"}
 COLS = {"date": 23, "time": 120, "matchup": 200, "team": 264, "player": 425, "status": 586, "reason": 666}
 
 
@@ -49,11 +50,14 @@ def inj_parse(pdf_bytes):
         for page in pdf.pages:
             lines = {}
             for w in page.extract_words():
-                if w["top"] < 115 or w["text"].startswith("Page"):
+                # skip only the page title (top ~45) and the footer; data rows start right under the title on pages 2+
+                if w["top"] < 70 or w["text"].startswith("Page"):
                     continue
                 lines.setdefault(round(w["top"]), []).append(w)
             anchors, reasons = [], []
             for top in sorted(lines):
+                if len({w["text"] for w in lines[top]} & HEADER) >= 3:  # column header line (page 1)
+                    continue
                 cells = {}
                 for w in sorted(lines[top], key=lambda w: w["x0"]):
                     c = col(w["x0"])
