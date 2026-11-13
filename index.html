@@ -248,6 +248,7 @@ body.tang .nchips button[aria-pressed="true"]{background:var(--ink);color:var(--
 .hl>b{display:block;font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .hl .hg{display:block}.hl .hg .pill{height:18px;font-size:10px;padding:0 7px;vertical-align:1px}
 .hl a,.ng-h a{color:inherit}
+.avl a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}.avl{line-height:1.55}.avl .avn{display:block;font-weight:600}.avl .avn a{display:inline;white-space:nowrap}.avt .ng-h a{color:inherit}
 .pill{display:inline-flex;justify-content:center;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
 .pill.o{background:var(--ink);color:var(--cream)}
 .pill.d{background:var(--ball);color:var(--ink)}
@@ -567,7 +568,7 @@ function wireCareer(){const box=$("#cchart");if(!box||!window._S)return;box.quer
 const ST={Out:["Out","o"],Doubtful:["Doubtful","d"],Questionable:["Questionable","q"],Probable:["Probable","p"],Available:["Available","a"]};
 let NF="all";
 function teamOfReport(t){const k=norm(t).replace(/ /g,"");return Object.keys(TEAMS).find(n=>k.endsWith(norm(n).replace(/ /g,"")))||t}
-function playerOfReport(raw){const p=String(raw).split(",");const last=p[0],first=p[p.length-1],suf=p.length>2?p[1]:"";return(first+" "+last+(suf?" "+suf:"")).replace(/\s+/g," ").trim()}
+function playerOfReport(raw){const p=String(raw).split(",");const last=p[0].replace(/([a-z])(Jr\.|Sr\.|III|II|IV)$/,"$1 $2"),first=p[p.length-1],suf=p.length>2?p[1]:"";return(first+" "+last+(suf?" "+suf:"")).replace(/\s+/g," ").trim()}
 let PKEY=null;function pid(name){if(!PKEY){PKEY=new Map();for(const x of CUR.byId.values())if(x.t>=CUR.meta.season-1)PKEY.set(norm(x.n).replace(/ |jr|sr|iii|ii|iv/g,""),x.i)}return PKEY.get(norm(name).replace(/ |jr|sr|iii|ii|iv/g,""))}
 function etToParis(d,t){const m=String(t).match(/(\d{1,2}):(\d{2})/);if(!m)return"";let h=+m[1];if(h<11)h+=12;const [mo,da,y]=d.split("/").map(Number);
   const guess=Date.UTC(y,mo-1,da,h,+m[2]);const s=new Date(guess).toLocaleString("sv-SE",{timeZone:"America/New_York"}).replace(" ","T");const off=Date.parse(s+"Z")-guess;const real=new Date(guess-off);
@@ -669,9 +670,23 @@ function teamNewsBlock(n,nd){if(!nd)return"";const cur=nd.cur,feed=nd.feed;
   const items=(feed?.items||[]).filter(x=>teamOfItem(x)===n).sort((a,b)=>((b.date&&/^\d{8}$/.test(b.date)?b.date:b.at.slice(0,10).replace(/-/g,""))+b.at).localeCompare((a.date&&/^\d{8}$/.test(a.date)?a.date:a.at.slice(0,10).replace(/-/g,""))+a.at)).slice(0,12);
   const when=cur?.report?new Date(cur.report).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"})+" (Paris)":"";
   return`<section class="block fade"><div class="block-h"><h2>Injuries &amp; news</h2><p>${when?`Official injury report of ${esc(when)}.`:""}</p></div>
-   <div class="ngames" style="grid-template-columns:1fr"><div class="ngame"><div class="ng-h"><b>Injury report</b><span>${injU.length?injU.length+" listed":""}</span></div>${injU.length?injU.map(r=>prow(n,r[4],r[5],r[6])).join(""):`<p class="mute small">Nobody listed on the latest report${cur&&(cur.notSubmitted||[]).some(x=>teamOfReport(x.team)===n)?" (team has not submitted yet)":""}.</p>`}</div></div>
+   ${(()=>{const g=reportGames(nd).find(x=>x.a===n||x.h===n);if(!g)return"";const mu=TEAMS[g.a][0]+"@"+TEAMS[g.h][0];const iso=etISO(g.d,g.t);const opp=g.a===n?g.h:g.a;
+     return`<p class="small" style="margin:0 0 8px"><b>Next game:</b> <a href="#m-${slug(g.a)}@${slug(g.h)}" style="text-decoration:underline">${g.a===n?"@":"vs"} ${esc(opp)}</a>${iso?` · ${esc(new Date(iso).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"}))} (Paris)`:""}</p><div class="ngames" style="grid-template-columns:1fr">${availTeam(n,nd,mu)}</div>`})()||`<div class="ngames" style="grid-template-columns:1fr"><div class="ngame"><div class="ng-h"><b>Injury report</b><span>${injU.length?injU.length+" listed":""}</span></div>${injU.length?injU.map(r=>prow(n,r[4],r[5],r[6])).join(""):`<p class="mute small">Nobody listed on the latest report${cur&&(cur.notSubmitted||[]).some(x=>teamOfReport(x.team)===n)?" (team has not submitted yet)":""}.</p>`}</div></div>`}
    ${items.length?`<div class="feed">${items.map(feedItemHTML).join("")}</div>`:`<p class="mute small">No recent transactions or rotation changes.</p>`}</section>`}
 async function newsData(){try{const [c,f]=await Promise.all(["current","feed"].map(x=>fetch("data/news/"+x+".json?t="+Date.now()).then(r=>r.ok?r.json():null)));return{cur:c,feed:f}}catch(e){return null}}
+function shortN(id){const w=nameOf(id).split(" ");return w.length>1?w[0][0]+". "+w.slice(1).join(" "):w[0]}
+const ST_ORD={Out:0,Doubtful:1,Questionable:2,Probable:3,Available:4};
+function availTeam(t,nd,mu){const c=CUR,cr=nd?.cur;
+  const seen=new Set();const rs=(cr?.rows||[]).filter(r=>teamOfReport(r[0])===t&&r[1]===mu&&!seen.has(r[4])&&seen.add(r[4])).sort((a,b)=>(ST_ORD[a[5]]??5)-(ST_ORD[b[5]]??5));
+  const ns=!rs.length&&(cr?.notSubmitted||[]).some(x=>teamOfReport(x.team)===t&&x.matchup===mu);
+  const off=new Set(rs.filter(r=>r[5]!=="Available").map(r=>pid(playerOfReport(r[4]))).filter(Boolean));
+  const recent=new Set([...c.games.values()].filter(g=>g.h===t||g.a===t).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,10).map(g=>g.id));
+  const av=[...c.ps.values()].filter(o=>o.tm===t&&!off.has(o.id)&&o.rows.some(r=>r.tm===t&&recent.has(r.g))).map(o=>({id:o.id,m:avg(o.rows.filter(r=>r.tm===t),"min")||0})).sort((a,b)=>b.m-a.m);
+  const listed=rs.filter(r=>r[5]!=="Available");
+  const head=`<div class="ng-h"><b><a href="#t-${slug(t)}">${esc(t)}</a></b><span>${ns?"No status yet":`${av.length} available · ${listed.length} on report`}</span></div>`;
+  if(ns)return`<div class="ngame avt">${head}<p class="mute small">The team hasn't submitted its injury report for this game yet.</p></div>`;
+  return`<div class="ngame avt">${head}${listed.map(r=>prow(t,r[4],r[5],r[6])).join("")}<div class="prow" data-st="a">${pillOf("Available")}<span class="pn avl"><span class="avn">${av.length?av.map(x=>`<a href="#p-${x.id}">${esc(shortN(x.id))}</a>`).join(", "):"—"}</span><small>Not on the injury report</small></span></div></div>`}
+function availNote(g){return g?`Official injury report of ${esc(new Date(window._ndAt||Date.now()).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"}))} (Paris). Players who appeared in the team's last 10 games.`:""}
 /* ---------- matchup (two teams, six crowns) ---------- */
 let MP="all";
 const PER=[["5","Last 5"],["10","Last 10"],["all","Season"]];
@@ -741,7 +756,9 @@ function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"
   </div><p class="small" style="color:var(--ink);margin:8px 0 0">On each card, <b>5/11</b> means: out of his 11 games in that period, he had the most in that category 5 times (both teams included).</p>
   <div class="kgrid fade">${CATS.map(kcat).join("")}</div>
   ${rosterBlock(A,H,stOf)}
-  <section class="block fade"><div class="block-h"><h2>Injuries</h2></div>${injNote?`<p class="mute small">${injNote}</p>`:`<div class="ngames">${listed.filter(x=>x[1].length).map(([t,rs])=>`<div class="ngame"><div class="ng-h"><b>${esc(t)}</b></div>${rs.map(r=>prow(t,r[4],r[5],r[6])).join("")}</div>`).join("")}</div>`}</section>
+  ${(()=>{const mu=TEAMS[A][0]+"@"+TEAMS[H][0];const on=reportGames(nd).some(g=>g.a===A&&g.h===H);window._ndAt=nd?.cur?.report;
+    return on?`<section class="block fade"><div class="block-h"><h2>Availability</h2><p>${availNote(1)}</p></div><div class="ngames">${[A,H].map(t=>availTeam(t,nd,mu)).join("")}</div></section>`
+    :`<section class="block fade"><div class="block-h"><h2>Availability</h2></div>${injNote?`<p class="mute small">${injNote}</p>`:`<p class="mute small">This game isn't on the official injury report yet (the NBA publishes it the day before). Latest statuses:</p><div class="ngames">${listed.filter(x=>x[1].length).map(([t,rs])=>`<div class="ngame"><div class="ng-h"><b>${esc(t)}</b></div>${rs.map(r=>prow(t,r[4],r[5],r[6])).join("")}</div>`).join("")}</div>`}</section>`})()}
   ${h2h.length?`<section class="block fade"><div class="block-h"><h2>Head-to-head</h2><p>${h2h.length===1?"Their only meeting":"Their "+h2h.length+" meetings"} this season, latest first. Who won each crown?</p></div><div class="h2h">${h2h.slice().reverse().map(g=>h2hCard(g)).join("")}</div></section>`:""}`}
 function h2hCard(g){const c=CUR;const rs=c.byGame.get(g.id)||[];const aw=g.as>g.hs;
   const val=(r,k)=>k==="plus"||k==="minus"?sgi(r.pm):r[k]+" "+({pts:"pts",reb:"reb",ast:"ast",tov:"TOV"})[k];
