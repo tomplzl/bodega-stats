@@ -2,7 +2,7 @@
 .stale b{white-space:nowrap;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.08em;font-size:11px}
 .fresh{white-space:nowrap}
 </style></head><body>
-<title>Bodega Stats</title>
+<title>Bodega Stats</title><link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png"><meta name="theme-color" content="#1E7EDC"><meta name="description" content="Tonight's NBA games: the favorite in every box score category, who plays, month races and stats."><meta property="og:type" content="website"><meta property="og:site_name" content="Bodega Stats"><meta property="og:title" content="Bodega Stats"><meta property="og:description" content="Tonight's NBA games: the favorite in every box score category, who plays, month races and stats."><meta property="og:url" content="https://tomplzl.github.io/bodega-stats/"><meta property="og:image" content="https://tomplzl.github.io/bodega-stats/assets/og-image.png"><meta property="og:image:width" content="800"><meta property="og:image:height" content="420"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://tomplzl.github.io/bodega-stats/assets/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
@@ -382,7 +382,7 @@ body.tang .cta{color:var(--cream)}
 
 <header class="bar">
   <div class="wrap">
-    <a class="logo" href="#"><i></i><span>Bodega&nbsp;</span><em>Stats</em></a>
+    <a class="logo" href="#" aria-label="Bodega Stats, tonight"><img src="assets/icon-192.png" alt="" width="24" height="24" style="border-radius:6px;display:block"><span>Bodega&nbsp;</span><em>Stats</em></a>
     <nav class="nav" aria-label="Sections">
       <a href="#" data-nav="home">Tonight</a>
       <a href="#equipes" data-nav="equipes">Teams</a>
@@ -398,7 +398,7 @@ body.tang .cta{color:var(--cream)}
 </main>
 
 <script>
-try{if(localStorage.getItem("bs_skin")==="orange")document.body.classList.add("tang")}catch(e){}
+
 const TEAMS={
  "Hawks":["ATL","#E03A3E","E"],"Celtics":["BOS","#007A33","E"],"Nets":["BKN","#2A2A2A","E"],"Hornets":["CHA","#00788C","E"],"Bulls":["CHI","#CE1141","E"],
  "Cavaliers":["CLE","#860038","E"],"Pistons":["DET","#C8102E","E"],"Pacers":["IND","#002D62","E"],"Heat":["MIA","#98002E","E"],"Bucks":["MIL","#00471B","E"],
@@ -534,6 +534,9 @@ async function pageTeam(sl){
       <div class="sub"><span><b>${ord(rank)}</b> in the ${TEAMS[n][2]==="E"?"East":"West"}</span><span>Avg. margin <b>${sg(diff)}</b></span><span>Scored <b>${f1(r.pf/gp)}</b> · allowed <b>${f1(r.pa/gp)}</b></span></div></div>
     <div class="sticker"><span class="big">${r.w}-${r.l}</span><small>${seasonLbl(c.meta.season)} record</small></div></section>
   ${teamNewsBlock(n,nd)}
+  ${await (async()=>{const sc=await dbDoc("schedule/season");const now=Date.now();const L=(sc?.games||[]).filter(([d,a,h,t])=>(a===n||h===n)&&TEAMS[a]&&TEAMS[h]&&(!t||Date.parse(t)>now-3*36e5)).sort((x,y)=>(x[0]+(x[3]||"~")).localeCompare(y[0]+(y[3]||"~"))).slice(0,5);
+    if(!L.length)return"";const rr=t=>{const r=c.rec[t];return r?r.w+"-"+r.l:""};
+    return`<section class="block fade"><div class="block-h"><h2>Next games</h2><p>Tap a game for the matchup.</p></div><div class="board">${L.map(([d,a,h,t])=>{const opp=a===n?h:a;return`<a class="lrow" href="#m-${slug(a)}@${slug(h)}" style="grid-template-columns:62px 10px minmax(0,1fr) auto"><span class="rk" style="text-align:left">${t?new Date(t).toLocaleDateString("en-US",{weekday:"short",timeZone:"Europe/Paris"})+" "+new Date(t).toLocaleDateString("en-US",{day:"numeric",timeZone:"Europe/Paris"}):dateFr(d)}</span><span class="dot" style="--c:${tcol(opp)}"></span><span class="nm">${a===n?"@":"vs"} ${esc(opp)} <small class="mute">${rr(opp)}</small></span><span class="v">${t?esc(parisT(t)):"TBD"}</span></a>`}).join("")}</div></section>`})()}
   <section class="block fade"><div class="block-h"><h2>Form</h2><p>Oldest to newest. Tap a square to open the opponent.</p></div>
     <div class="form">${r.games.map(x=>`<a href="#t-${slug(x.opp)}" title="${dateFr(x.g.d)} · ${x.home?"vs":"@"} ${esc(x.opp)} ${x.f}-${x.a}"><i class="${x.w?"W":"L"}">${x.w?"W":"L"}</i>${x.home?"":"@"}${tab(x.opp)}</a>`).join("")}</div></section>
   <section class="block fade"><div class="block-h"><h2>Roster</h2><p>The rotation, by minutes played.</p></div>
@@ -932,8 +935,8 @@ async function route(){
     else html=await pageHome();
     if(h)html=crumbs(h)+`<div style="margin-top:10px">${searchBox("q",false)}</div>`+html;
     const c=CUR;
-    app.innerHTML=html+`<p class="foot">Sources: Kaggle dataset “Historical NBA Data and Player Box Scores” (1946-2026), Basketball-Reference box scores for the current season, and the NBA's official injury report and player transactions. Regular season unless noted. Data through ${c?dateFr(c.meta.through)+", "+c.meta.through.slice(0,4):"–"}. “Box score king” = best of both teams in the category, ties included.<span class="fresh"></span></p><div class="skins" role="group" aria-label="Colors"><button type="button" data-skin="bleu">Blue</button><button type="button" data-skin="orange">Orange</button></div>`;
-    let sk="bleu";try{sk=localStorage.getItem("bs_skin")||"bleu"}catch(e){}setSkin(sk);
+    app.innerHTML=html+`<p class="foot">Sources: Kaggle dataset “Historical NBA Data and Player Box Scores” (1946-2026), Basketball-Reference box scores for the current season, and the NBA's official injury report and player transactions. Regular season unless noted. Data through ${c?dateFr(c.meta.through)+", "+c.meta.through.slice(0,4):"–"}. “Box score king” = best of both teams in the category, ties included.<span class="fresh"></span></p>`;
+    fixTeamAccents();
     app.querySelectorAll("tr[data-href]").forEach(tr=>tr.onclick=()=>location.hash=tr.dataset.href.slice(1));
     app.querySelectorAll(".pcard").forEach(cd=>{cd.addEventListener("pointermove",e=>{const r=cd.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;cd.style.setProperty("--ry",((x-.5)*16)+"deg");cd.style.setProperty("--rx",((.5-y)*16)+"deg");cd.style.setProperty("--mx",x*100+"%");cd.style.setProperty("--my",y*100+"%");cd.style.setProperty("--a",Math.round(x*360))});cd.addEventListener("pointerleave",()=>{cd.style.setProperty("--rx","0deg");cd.style.setProperty("--ry","0deg")})});
     countUp(app);
