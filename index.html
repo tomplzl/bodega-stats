@@ -651,7 +651,7 @@ let MON=null;
 async function monthBlock(){const c=CUR;const ms=[...new Set([...c.games.values()].map(g=>g.d.slice(0,7)))].sort();if(!ms.length)return"";
   if(!MON||!ms.includes(MON))MON=ms[ms.length-1];
   const lbl=m=>new Date(m+"-15T12:00:00").toLocaleDateString("en-US",{month:"long"});
-  return`<section class="block fade" id="mon"><div class="block-h"><h2>The Monthly Race</h2><p id="monNote"></p></div>
+  return`<section class="block fade" id="mon"><div class="block-h"><h2>Kings of the Month</h2><p id="monNote"></p></div>
   <div class="nchips" role="group" aria-label="Month">${ms.map(m=>`<button type="button" data-mon="${m}" aria-pressed="${m===MON}">${lbl(m)}</button>`).join("")}</div>
   <div class="boards" id="monb" style="margin-top:12px"><p class="mute small">Loading…</p></div></section>`}
 async function drawMonth(){const box=$("#monb");if(!box)return;const c=CUR,m=MON;
