@@ -1,0 +1,89 @@
+name: Heartbeat
+# GitHub often skips scheduled runs. This workflow stays awake (about 5 h 45 per run),
+# starts News, Season and Site check on time, then starts its next run itself.
+# The schedule below only restarts it if the chain ever breaks.
+on:
+  schedule:
+    - cron: "3 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Short test: start Site check once, run 2 minutes, do not relaunch"
+        type: boolean
+        default: false
+permissions:
+  actions: write
+  contents: read
+  issues: write
+concurrency:
+  group: heartbeat
+  cancel-in-progress: false
+jobs:
+  beat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Start the updates on time
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TEST: ${{ inputs.test && '1' || '0' }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, datetime as dt
+          repo, tok, test = os.environ["REPO"], os.environ["GH_TOKEN"], os.environ["TEST"] == "1"
+          def dispatch(wf):
+              req = urllib.request.Request(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/dispatches",
+                  data=json.dumps({"ref": "main"}).encode(), method="POST",
+                  headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"})
+              for i in range(3):
+                  try:
+                      urllib.request.urlopen(req, timeout=30); print(dt.datetime.utcnow().strftime("%H:%M"), "started", wf, flush=True); return True
+                  except Exception as e:
+                      print("retry", wf, e, flush=True); time.sleep(20)
+              return False
+          SEASON = {(6, 40), (8, 40), (12, 40), (18, 40)}   # UTC; games end around 5:00 UTC
+          start, done, ok = time.time(), set(), True
+          if test:
+              ok = dispatch("site-check.yml"); limit = 120
+          else:
+              limit = 5 * 3600 + 45 * 60
+          while time.time() - start < limit:
+              n = dt.datetime.utcnow(); key = n.strftime("%Y%m%d%H%M")
+              jobs = []
+              if n.minute == 17: jobs.append("news.yml")
+              if (n.hour, n.minute) in SEASON: jobs.append("season.yml")
+              if n.hour % 3 == 0 and n.minute == 37: jobs.append("site-check.yml")
+              for wf in jobs:
+                  if (key, wf) not in done:
+                      done.add((key, wf)); ok = dispatch(wf) and ok
+              time.sleep(20)
+          if not test:
+              ok = dispatch("heartbeat.yml") and ok
+          if not ok: raise SystemExit("some dispatches failed")
+          PY
+      - name: Alert (opens an issue, @mentions owner -> e-mail)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          gh label create "$L" --color FF783D --description "Automatic failure alert" 2>/dev/null || true
+          if [ "$(gh issue list --label "$L" --state open --json number --jq length)" = "0" ]; then
+            gh issue create --label "$L" --title "Bodega Stats: the ${{ github.workflow }} update failed" --body "@tomplzl The **${{ github.workflow }}** workflow failed on $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          The site keeps showing the last good data. This issue closes itself as soon as a run succeeds again. If it stays open for more than a day, open a Claude conversation in the Bodega stat project and paste this link."
+          fi
+      - name: Close alert when back to normal
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          L="alert-${{ github.workflow }}"; L=$(echo "$L" | tr 'A-Z ' 'a-z-')
+          for n in $(gh issue list --label "$L" --state open --json number --jq '.[].number' 2>/dev/null); do
+            gh issue close "$n" --comment "Back to normal: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          done
