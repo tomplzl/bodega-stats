@@ -1,3 +1,2 @@
 injuries/current
-injuries/feed
 news/state
