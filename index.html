@@ -679,7 +679,7 @@ async function drawMonth(){const box=$("#monb");if(!box)return;const c=CUR,m=MON
   document.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>{MON=b.dataset.mon;document.querySelectorAll("[data-mon]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));drawMonth()})}
 let RK={season:null,mode:"avg"};const RKOPEN=new Set();
 const RKCATS=[["pts","Points"],["reb","Rebounds"],["ast","Assists"],["stl","Steals"],["blk","Blocks"],["tpm","3-pointers made"],["fg","Field goal %","pct"],["tp","3-point %","pct"],["ft","Free throw %","pct"],["pm","Plus/minus","pm"],["min","Minutes"],["tov","Turnovers"]];
-const RKD={};
+const RKD={};const MAINK=["pts","reb","ast","tov","pm"];
 async function rkEnsure(){const s=RK.season;if(s===String(CUR.meta.season)||RKD[s])return;
   if(s==="career"){RKD[s]=(await load("career")).r;return}
   const d=await load("seasons/"+s);const m=new Map();d.r.forEach(x=>{(m.get(x[0])||m.set(x[0],{n:x[1],rows:[]}).get(x[0])).rows.push([d.y,x[2],...x.slice(3)])});RKD[s]=m}
@@ -721,14 +721,14 @@ function drawRanks(){const b=$("#rkb");if(!b)return;const c=CUR;const sel=$("#rk
   const q=L.filter(x=>x.gp>=need);
   $("#rknote").textContent=career?(avgM?"Career averages, minimum 400 games. ":"Career totals, regular season. ")+"Steals and blocks tracked since 1973-74, 3-pointers since 1979-80, plus/minus since 1996-97. Some old box scores are missing, so pre-1990 totals may run slightly below official figures."
     :`${seasonLbl(+RK.season)} · players with at least ${need} games (70% of the most played). Percentages: minimum 5 FGA, 2 3PA or 2 FTA per game.`;
-  const boards=RKCATS.map(([k,l,kind])=>{let list;
+  const boards=[...RKCATS].sort((x,y)=>MAINK.includes(y[0])-MAINK.includes(x[0])).map(([k,l,kind])=>{let list;
     if(kind==="pct"){const [m,a,mn]={fg:["fgm","fga",5],tp:["tpm","tpa",2],ft:["ftm","fta",2]}[k];list=q.filter(x=>x.t[a]!=null&&x.t[m]!=null&&x.t[a]/x.gp>=mn).map(x=>({...x,v:100*x.t[m]/x.t[a]}))}
     else list=q.filter(x=>x.t[k]!=null).map(x=>({...x,v:avgM?x.t[k]/x.gp:x.t[k]}));
     list.sort((a,b)=>b.v-a.v);const open=RKOPEN.has(k);const shown=list.slice(0,open?50:5);
     const fmt=x=>kind==="pct"?f1(x.v)+"%":kind==="pm"?(avgM?sg(x.v):sgi(Math.round(x.v))):avgM?f1(x.v):Math.round(x.v).toLocaleString("en-US");
     return`<div class="board"><h3><span>${l}</span><small>${kind==="pct"?"made":avgM?"per game":"total"}</small></h3>${shown.length?shown.map((x,i)=>`<a class="lrow" href="#p-${x.id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${x.c}"></span><span class="nm">${esc(x.n)}</span><span class="v">${fmt(x)}<small> · ${career?x.yrs:x.gp+" GP"}</small></span></a>`).join(""):`<p class="mute small" style="padding:6px 0 12px">Not tracked this season.</p>`}
-      ${list.length>5?`<button type="button" class="more" data-more="${k}">${open?"Show less":`Show top ${Math.min(50,list.length)}`}</button>`:""}</div>`}).join("");
-  b.innerHTML=boards;b.querySelectorAll("[data-more]").forEach(x=>x.onclick=()=>{const k=x.dataset.more;RKOPEN.has(k)?RKOPEN.delete(k):RKOPEN.add(k);drawRanks()})}
+      ${list.length>5?`<button type="button" class="more" data-more="${k}">${open?"Show less":`Show top ${Math.min(50,list.length)}`}</button>`:""}</div>`});
+  b.innerHTML=boards.slice(0,MAINK.length).join("")+`<details class="fold" style="grid-column:1/-1;margin-top:4px"${window._RKMORE?" open":""}><summary>More categories</summary><div class="boards" style="margin-top:12px">${boards.slice(MAINK.length).join("")}</div></details>`;const fd=b.querySelector("details.fold");if(fd)fd.ontoggle=()=>{window._RKMORE=fd.open};b.querySelectorAll("[data-more]").forEach(x=>x.onclick=()=>{const k=x.dataset.more;RKOPEN.has(k)?RKOPEN.delete(k):RKOPEN.add(k);drawRanks()})}
 async function wireRanks(){const go=async()=>{try{await rkEnsure()}catch(e){const b=$("#rkb");if(b)b.innerHTML=`<p class="mute small">This season couldn't be loaded. Check your connection and try again.</p>`;return}drawRanks()};
   document.querySelectorAll("[data-rk]").forEach(x=>x.onclick=()=>{RK.mode=x.dataset.rk;drawRanks()});$("#rkSeason").onchange=e=>{RK.season=e.target.value;RKOPEN.clear();go()};$("#rkSeason").value=RK.season;await go()}
 function teamOfItem(x){return x.kind==="inj"||!x.kind?teamOfReport(x.team):(Object.keys(TEAMS).find(n=>norm(x.team||"").includes(norm(n)))||x.team)}
