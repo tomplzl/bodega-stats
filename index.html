@@ -686,8 +686,7 @@ async function rkEnsure(){const s=RK.season;if(s===String(CUR.meta.season)||RKD[
 async function pageRanks(){const c=await cur();const ss=new Set([c.meta.season,...c.meta.hist]);
   if(RK.season==null)RK.season=String(c.meta.season);
   const opts=[...ss].sort((a,b)=>b-a).map(s=>`<option value="${s}">${seasonLbl(s)}${s===c.meta.season?" (current)":""}</option>`).join("");
-  return`<div class="home-hero fade" style="padding-bottom:6px"><span class="eyebrow">Averages and totals</span><h1 class="disp">Stats<span>.</span></h1>
-  <p class="meta" style="max-width:62ch;margin:0">The league's best in every category, season by season since 1946, or over an entire career.</p></div>
+  return`<div class="home-hero fade" style="padding-bottom:6px"><span class="eyebrow">Averages and totals</span><h1 class="disp">Stats<span>.</span></h1></div>
   ${await monthBlock()}
   <details class="fold fade"><summary>Box score kings · season</summary><p>How many times each player was the best of both teams in a Bodega category this season.</p><div class="boards" style="margin-top:12px">${CATS.map(([k,l])=>{const arr=[...c.ps.values()].map(o=>({o,n:cnt(o.rows,k),gp:o.rows.length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.gp-b.gp).slice(0,5);return`<div class="board"><h3><span>${l}</span><small>crowns / games</small></h3>${arr.map((x,i)=>`<a class="lrow" href="#p-${x.o.id}"><span class="rk">${i+1}</span><span class="dot" style="--c:${tcol(x.o.tm)}"></span><span class="nm">${esc(nameOf(x.o.id))}</span><span class="v">${x.n}<small> / ${x.gp}</small></span></a>`).join("")}</div>`}).join("")}</div></details>
   <div class="rkbar"><label class="sel"><span>Season</span><select id="rkSeason" aria-label="Season"><option value="career">Entire career</option>${opts}</select></label>
