@@ -505,10 +505,18 @@ async function pageHome(){
     ${searchBox("q",false)}
     <p class="meta" style="margin:0">Tap a game: the favorite in each Bodega category, injured players skipped.</p></div>
   <section class="block fade"><div class="block-h tbar"><h2>${games.length} game${games.length>1?"s":""}</h2><button type="button" class="linkbtn" id="openAll">Open all</button></div><div class="ngames tlist">${games.length?games.map(g=>tonightCard(g,inj,nd)).join(""):`<p class="mute">No game scheduled.</p>`}</div></section>
-  <section class="block fade"><div class="block-h"><h2>Latest results</h2><p>${dateFr(lastDay)}</p></div><div class="scores">${lastGames.map(scoreCard).join("")}</div></section>
+  <section class="block fade"><div class="block-h tbar"><h2>Last night</h2><p style="margin:0">${dateFr(lastDay)} · tap for the kings</p></div><div class="ngames tlist">${lastGames.map(lastNightCard).join("")}</div></section>
   <details class="fold fade"><summary>Standings</summary><div class="stand">${standTable(c,"E")}${standTable(c,"W")}</div></details>
   <details class="fold fade"><summary>How to read</summary><p><b>5/9</b>: in his 9 games this season, he was the box score king of the game (best of both teams) in that category 5 times. Ties count, like in Bodega. <b>+/-</b>: points his team was up or down while he was on the floor.</p></details>
   <p class="small mute" style="margin-top:18px">Season ${seasonLbl(c.meta.season)} · box scores through ${dateFr(c.meta.through)} · ${c.meta.counts.players.toLocaleString("en-US")} players since 1946 in <a href="#stats" style="text-decoration:underline">Stats</a>.</p>`}
+/* box score kings of one finished game (ties included) */
+function kingsHTML(g){const rs=CUR.rows.filter(r=>r.g===g.id);if(!rs.length)return"";
+  const last=id=>{const w=nameOf(id).split(" ");return w.length>1?w.slice(1).join(" "):w[0]};
+  const U={pts:"pts",reb:"reb",ast:"ast",tov:"TO",plus:"",minus:""};
+  return`<div class="tg">${CATS.map(([k])=>{const ks=rs.filter(r=>r.L&&r.L[k]);if(!ks.length)return`<span class="mute">–</span>`;const v=ks[0][SK[k]];const tm=ks[0].tm;
+    return`<a href="#p-${ks[0].p}" style="--c:${tcol(tm)}" data-tc="${esc(tm)}"><small>${SHORTCAT[k]}</small><b style="white-space:normal;font-size:${ks.length>1?13:15}px">${ks.map(r=>esc(last(r.p))).join(" / ")}</b><i>${k==="plus"||k==="minus"?(v>0?"+":v<0?"−":"")+Math.abs(v):v+" "+U[k]}</i></a>`}).join("")}</div>`}
+function lastNightCard(g){const hw=g.hs>g.as;const t=(n,sc,w)=>`<span class="${w?"":"mute"}"><span class="dot" style="--c:${tcol(n)}"></span>${esc(n)} <b>${sc}</b></span>`;
+  return`<details class="ngame tcard"><summary><span class="tm2">${t(g.a,g.as,!hw)}<span class="at">@</span>${t(g.h,g.hs,hw)}</span><span class="tmeta">Final · ${esc(hw?g.h:g.a)} win</span><span class="chev" aria-hidden="true"></span></summary>${kingsHTML(g)}<p class="tout"><a href="#m-${slug(g.a)}@${slug(g.h)}">Full matchup →</a></p></details>`}
 function scoreCard(g){const hw=g.hs>g.as;const ln=(n,s,w)=>`<a href="#t-${slug(n)}" class="${w?"won":"lost"}"><span class="dot" style="--c:${tcol(n)}"></span><span>${esc(n)}</span></a><b class="${w?"won":"lost"}">${s}</b>`;return`<div class="score">${ln(g.a,g.as,!hw)}${ln(g.h,g.hs,hw)}</div>`}
 
 async function pageTeams(){const c=await cur();
@@ -825,8 +833,10 @@ function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"
   const onReport=reportGames(nd).some(g=>(g.a===A&&g.h===H)||(g.a===H&&g.h===A));
   const injNote=!nd?.cur?"The injury report is unavailable right now.":listed.some(x=>x[1].length)?"":onReport?"Nobody from these two teams is on the latest injury report.":"This game isn't on the official injury report yet: statuses will show here once the NBA publishes them.";
   const h2h=[...c.games.values()].filter(g=>(g.h===A&&g.a===H)||(g.h===H&&g.a===A)).sort((a,b)=>a.d.localeCompare(b.d));
+  const lastG=h2h[h2h.length-1];const recent=lastG&&(Date.now()-Date.parse(lastG.d+"T12:00:00Z"))<3.5*864e5?lastG:null;
   const kings=(g,k)=>(c.byGame.get(g.id)||[]).filter(r=>r.L[k]).map(r=>esc(nameOf(r.p).split(" ").slice(-1)[0])).join(", ");
   return`<div class="mhead fade">${head(A)}<span class="vs">@</span>${head(H)}</div>
+  ${recent?`<section class="block fade"><div class="block-h"><h2>Last game</h2><p>${dateFr(recent.d)} · ${esc(recent.a)} ${recent.as} @ ${esc(recent.h)} ${recent.hs} · Final</p></div><div class="ngame">${kingsHTML(recent)}</div></section>`:""}
   
 ${(()=>{const mu=TEAMS[A][0]+"@"+TEAMS[H][0];const on=reportGames(nd).some(g=>g.a===A&&g.h===H);window._ndAt=nd?.cur?.report;
     return on?`<section class="block fade"><div class="block-h"><h2>Availability</h2><p>${availNote(1)}</p></div><div class="ngames">${[A,H].map(t=>availTeam(t,nd,mu)).join("")}</div></section>`
