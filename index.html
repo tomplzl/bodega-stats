@@ -780,6 +780,7 @@ function parseM(h){const m=h.slice(2).split("@");const a=Object.keys(TEAMS).find
 function injMap(nd){const m=new Map();(nd?.cur?.rows||[]).forEach(r=>{const id=pid(playerOfReport(r[4]));if(id&&!m.has(id))m.set(id,r[5])});return m}
 function reportGames(nd){const s=new Map();const add=(mu,d,t)=>{const [a,h]=String(mu||"").split("@");const A=byAbbr(a),H=byAbbr(h);if(A&&H&&!s.has(A+"@"+H))s.set(A+"@"+H,{a:A,h:H,d,t})};
   (nd?.cur?.rows||[]).forEach(r=>add(r[1],r[2],r[3]));(nd?.cur?.notSubmitted||[]).forEach(x=>add(x.matchup,x.date,""));return[...s.values()]}
+const LAB_URL="https://claude.ai/artifact/VJAFk5rGxoNjYLduBH68Sb";
 async function dbDoc(p){const f={"schedule/season":"schedule","matchups/bodega":"bodega"}[p];if(!f)return null;try{const r=await fetch("data/"+f+".json?t="+Date.now());return r.ok?await r.json():null}catch(e){return null}}
 function etISO(d,t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)return"";let h=+m[1];if(h<11)h+=12;const [mo,da,y]=String(d).split("/").map(Number);if(!y)return"";const guess=Date.UTC(y,mo-1,da,h,+m[2]);const s=new Date(guess).toLocaleString("sv-SE",{timeZone:"America/New_York"}).replace(" ","T");return new Date(guess-(Date.parse(s+"Z")-guess)).toISOString()}
 const parisT=t=>new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"});
@@ -809,7 +810,7 @@ async function pageMatchup(h){MT=0;const c=await cur();const [nd,sc,bd]=await Pr
   const info=[sel?.t?`Tip-off ${new Date(sel.t).toLocaleString("en-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit",timeZone:"Europe/Paris"})} (Paris)`:"",bThis?`<span class="btag">Bodega</span> ${esc(bThis.lbl)} · picks close ${esc(dlT(bThis))}`:""].filter(Boolean).join(" · ");
   return`<div class="mtop fade"><h1 class="disp">Matchup<span>.</span></h1>
   ${up.length?`<p class="pickh">Choose a game</p><div class="days" role="group" aria-label="Day">${[...days.keys()].map(d=>`<button type="button" data-day="${d}" aria-pressed="${d===day0}">${dayShort(d)}</button>`).join("")}</div><div class="gstrip" id="gstrip">${gTiles(day0)}</div>
-  <div class="mctl">${bNext&&!bThis?`<a class="linkbtn" href="#m-${slug(bNext.a)}@${slug(bNext.h)}">Next Bodega game →</a>`:""}</div>${info?`<p class="small" style="color:var(--ink);margin-top:2px">${info}</p>`:""}`:`<p class="mute small">The schedule is unavailable right now. Try reloading in a moment.</p>`}</div>
+  <div class="mctl">${bNext&&!bThis?`<a class="linkbtn" href="#m-${slug(bNext.a)}@${slug(bNext.h)}">Next Bodega game →</a>`:""}${bThis?`<a class="linkbtn" href="${LAB_URL}" target="_blank" rel="noopener">Picks → Lab ↗</a>`:""}</div>${info?`<p class="small" style="color:var(--ink);margin-top:2px">${info}</p>`:""}`:`<p class="mute small">The schedule is unavailable right now. Try reloading in a moment.</p>`}</div>
   <div id="mbody">${pair?matchBody(pair,nd):""}</div>`}
 function matchBody([A,H],nd){const c=CUR;const inj=injMap(nd);const n=MP==="all"?1e9:+MP;
   const dOf=r=>c.games.get(r.g)?.d||"";
